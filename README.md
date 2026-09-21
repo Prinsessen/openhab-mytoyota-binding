@@ -65,6 +65,11 @@ reports (door lock, climate, ...).
 | `status#hoodOpen` | Contact | |
 | `status#hazardLights` | Switch | |
 | `status#lastUpdate` | DateTime | |
+| `doors#<door>Locked` / `doors#<door>Open` | Switch / Contact | per door: `driver`, `passenger`, `rearLeft`, `rearRight`, `rearBack` (trunk) |
+| `doors#hoodOpen` | Contact | |
+| `doors#rearSeatReminder` | String | `ok`, `notDetected`, or `warning: …` |
+| `windows#driver` … `windows#rearRight` | String | `close`, `open`, `unknown` (some cars do not report the rear windows) |
+| `lights#hazard`, `lights#tail`, `lights#head` | Switch | |
 | `climate#status` | String | `stopped`, `starting`, `running` |
 | `notifications#latest` | String | the newest message the app shows, e.g. "Your request could not be completed because a keyfob was detected in your vehicle." |
 | `notifications#latestTime` | DateTime | when it was issued |

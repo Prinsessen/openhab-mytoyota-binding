@@ -425,8 +425,30 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             updateState(CHANNEL_STATUS_HOOD_OPEN, openClosed(nested(object(doors, "hood"), "openStatus", "status")));
         }
 
+        // per-door detail, as the app's status page shows it
+        for (String d : DOORS) {
+            JsonObject door = object(doors, d);
+            String lock = nested(door, "lockStatus", "status");
+            String open = nested(door, "openStatus", "status");
+            updateState(GROUP_DOORS + d + "Locked", lock == null ? UnDefType.UNDEF : OnOffType.from("locked".equalsIgnoreCase(lock)));
+            updateState(GROUP_DOORS + d + "Open", openClosed(open));
+        }
+        updateState(CHANNEL_DOORS_HOOD, openClosed(nested(object(doors, "hood"), "openStatus", "status")));
+        JsonObject seat = object(p, "rearSeatReminder");
+        if (seat != null) {
+            JsonElement w = seat.get("warning");
+            String reason = string(seat, "reason");
+            updateState(CHANNEL_DOORS_REAR_SEAT, w != null && w.isJsonPrimitive() && w.getAsBoolean()
+                    ? new StringType("warning" + (reason == null ? "" : ": " + reason))
+                    : new StringType(reason == null ? "ok" : reason));
+        }
+
         JsonObject windows = object(p, "windows");
         if (windows != null) {
+            for (String wn : WINDOWS) {
+                String st = string(object(windows, wn), "status");
+                updateState(GROUP_WINDOWS + wn, st == null ? UnDefType.UNDEF : new StringType(st));
+            }
             boolean anyOpen = false;
             for (Map.Entry<String, JsonElement> e : windows.entrySet()) {
                 if (e.getValue().isJsonObject()) {
@@ -438,6 +460,10 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
 
         JsonObject lights = object(p, "lights");
         if (lights != null) {
+            for (String ln : LIGHTS) {
+                String st = nested(lights, ln, "status");
+                updateState(GROUP_LIGHTS + ln, st == null ? UnDefType.UNDEF : OnOffType.from("on".equalsIgnoreCase(st)));
+            }
             String hazard = nested(lights, "hazard", "status");
             State hazardState = hazard == null ? UnDefType.UNDEF : OnOffType.from("on".equalsIgnoreCase(hazard));
             updateState(CHANNEL_STATUS_HAZARD, hazardState);

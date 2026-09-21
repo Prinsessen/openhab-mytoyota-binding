@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0 (unreleased)
+
+Per-door, per-window and per-light channels (groups `doors`, `windows`, `lights`),
+plus the rear seat reminder: the same detail the app's status page shows.
+
 ## 1.2.0 — 2026-09-21
 
 Notifications: the messages the app shows, as channels (latest, time, category,

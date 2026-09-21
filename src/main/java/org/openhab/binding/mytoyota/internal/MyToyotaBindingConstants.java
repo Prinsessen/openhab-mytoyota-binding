@@ -58,6 +58,16 @@ public class MyToyotaBindingConstants {
     public static final String CHANNEL_STATUS_HAZARD = "status#hazardLights";
     public static final String CHANNEL_STATUS_TIMESTAMP = "status#lastUpdate";
 
+    // per-door, per-window, per-light detail (what the app's status page shows)
+    public static final String[] DOORS = { "driver", "passenger", "rearLeft", "rearRight", "rearBack" };
+    public static final String[] WINDOWS = { "driver", "passenger", "rearLeft", "rearRight" };
+    public static final String[] LIGHTS = { "hazard", "tail", "head" };
+    public static final String GROUP_DOORS = "doors#";
+    public static final String GROUP_WINDOWS = "windows#";
+    public static final String GROUP_LIGHTS = "lights#";
+    public static final String CHANNEL_DOORS_HOOD = "doors#hoodOpen";
+    public static final String CHANNEL_DOORS_REAR_SEAT = "doors#rearSeatReminder";
+
     // climate
     public static final String CHANNEL_CLIMATE_STATUS = "climate#status";
 

@@ -61,6 +61,9 @@
 			<channel-group id="telemetry" typeId="telemetry"/>
 			<channel-group id="location" typeId="location"/>
 			<channel-group id="status" typeId="status"/>
+			<channel-group id="doors" typeId="doors"/>
+			<channel-group id="windows" typeId="windows"/>
+			<channel-group id="lights" typeId="lights"/>
 			<channel-group id="climate" typeId="climate"/>
 			<channel-group id="notifications" typeId="notifications"/>
 			<channel-group id="control" typeId="control"/>
@@ -145,6 +148,44 @@
 			<channel id="lastUpdate" typeId="timestamp">
 				<label>Status Reported</label>
 			</channel>
+		</channels>
+	</channel-group-type>
+
+	<channel-group-type id="doors">
+		<label>Doors</label>
+		<description>Per door, as the app's status page shows it.</description>
+		<channels>
+			<channel id="driverLocked" typeId="door-locked"><label>Driver Door Locked</label></channel>
+			<channel id="driverOpen" typeId="open-contact"><label>Driver Door Open</label></channel>
+			<channel id="passengerLocked" typeId="door-locked"><label>Passenger Door Locked</label></channel>
+			<channel id="passengerOpen" typeId="open-contact"><label>Passenger Door Open</label></channel>
+			<channel id="rearLeftLocked" typeId="door-locked"><label>Rear Left Door Locked</label></channel>
+			<channel id="rearLeftOpen" typeId="open-contact"><label>Rear Left Door Open</label></channel>
+			<channel id="rearRightLocked" typeId="door-locked"><label>Rear Right Door Locked</label></channel>
+			<channel id="rearRightOpen" typeId="open-contact"><label>Rear Right Door Open</label></channel>
+			<channel id="rearBackLocked" typeId="door-locked"><label>Trunk Locked</label></channel>
+			<channel id="rearBackOpen" typeId="open-contact"><label>Trunk Open</label></channel>
+			<channel id="hoodOpen" typeId="open-contact"><label>Hood Open</label></channel>
+			<channel id="rearSeatReminder" typeId="rear-seat-reminder"/>
+		</channels>
+	</channel-group-type>
+
+	<channel-group-type id="windows">
+		<label>Windows</label>
+		<channels>
+			<channel id="driver" typeId="window-state"><label>Driver Window</label></channel>
+			<channel id="passenger" typeId="window-state"><label>Passenger Window</label></channel>
+			<channel id="rearLeft" typeId="window-state"><label>Rear Left Window</label></channel>
+			<channel id="rearRight" typeId="window-state"><label>Rear Right Window</label></channel>
+		</channels>
+	</channel-group-type>
+
+	<channel-group-type id="lights">
+		<label>Lights</label>
+		<channels>
+			<channel id="hazard" typeId="light-state"><label>Hazard Lights</label></channel>
+			<channel id="tail" typeId="light-state"><label>Tail Lights</label></channel>
+			<channel id="head" typeId="light-state"><label>Headlights</label></channel>
 		</channels>
 	</channel-group-type>
 
@@ -379,6 +420,32 @@
 		<label>Unread Messages</label>
 		<description>Messages not yet opened in the app. The binding cannot mark them read.</description>
 		<state readOnly="true" pattern="%d"/>
+	</channel-type>
+
+	<channel-type id="door-locked">
+		<item-type>Switch</item-type>
+		<label>Locked</label>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="window-state">
+		<item-type>String</item-type>
+		<label>Window</label>
+		<description>close, open or unknown (some cars do not report the rear windows).</description>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="light-state">
+		<item-type>Switch</item-type>
+		<label>Light</label>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="rear-seat-reminder" advanced="true">
+		<item-type>String</item-type>
+		<label>Rear Seat Reminder</label>
+		<description>ok, notDetected, or warning: something may have been left on the rear seat.</description>
+		<state readOnly="true"/>
 	</channel-type>
 
 	<channel-type id="timestamp" advanced="true">
