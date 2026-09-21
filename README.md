@@ -67,6 +67,15 @@ reports (door lock, climate, ...).
 | `status#lastUpdate` | DateTime | |
 | `climate#status` | String | `stopped`, `starting`, `running` |
 | `control#refresh` | Switch | send ON: wake the car for fresh battery and door state, poll again 45 s later; resets to OFF |
+| `control#lock` | Switch | ON locks the doors, OFF unlocks; confirm on `status#locked` after the poll 45 s later |
+| `control#hazardLights` | Switch | hazard lights on / off |
+| `control#horn` | Switch | ON sounds the horn once |
+| `control#findVehicle` | Switch | ON flashes the lights |
+| `control#climate` | Switch | ON starts the remote climate with the two setpoints below, OFF stops it; confirm on `climate#status` |
+| `control#climateTemperature` | Number:Temperature | target for the next climate start (seeded from the car's saved setting) |
+| `control#climateDuration` | Number:Time | minutes the climate runs (seeded from the car) |
+| `control#chargeNow` | Switch | ON starts charging now while plugged in, overriding a schedule |
+| `control#lastCommandResult` | String | last command and the cloud's return code, e.g. `door-lock: 000000 (Success)` |
 | `control#lastWake` | DateTime | last wake request sent |
 | `control#lastPoll` | DateTime | last successful poll |
 
@@ -86,6 +95,21 @@ Location             Car_Position "Position"            { channel="mytoyota:vehi
 Switch               Car_Locked   "Locked [%s]"         { channel="mytoyota:vehicle:home:bz4x:status#locked" }
 Switch               Car_Refresh  "Refresh from car"    { channel="mytoyota:vehicle:home:bz4x:control#refresh" }
 ```
+
+## Remote commands
+
+The control channels send what the app sends: `/v1/global/remote/command`
+for lock, unlock, hazard lights, horn and find-vehicle,
+`/v2/remote/climate-control` for climate start and stop, and
+`/v1/global/remote/electric/command` for charge-now. The cloud only
+acknowledges the request (return code `000000`); whether the car did it shows
+on the state channels, which the binding polls again 45 seconds after every
+command. Which commands a car supports is in the thing's `capabilities`
+property. Commands wake the car's modem like the refresh does.
+
+Verified on the test car (bZ4X 2025): lock while parked. The other commands
+use the same request shape and are expected to work on cars whose
+capabilities list them; report back if one does not.
 
 ## How fresh is the data
 

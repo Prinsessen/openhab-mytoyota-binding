@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0 (unreleased)
+
+Remote commands: lock/unlock, hazard lights, horn, find vehicle, climate
+start/stop with temperature and duration setpoints, charge now, and a
+last-command-result channel. Every command is followed by a confirming poll.
+
 ## 1.0.0 (unreleased)
 
 First version. Account bridge with the MyToyota app login, vehicle discovery,

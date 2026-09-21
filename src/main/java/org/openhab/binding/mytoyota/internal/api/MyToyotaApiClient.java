@@ -76,6 +76,13 @@ public class MyToyotaApiClient {
     public static final String ENDPOINT_TELEMETRY = "/v3/telemetry";
     public static final String ENDPOINT_HEALTH = "/v1/vehiclehealth/status";
     public static final String ENDPOINT_CLIMATE_STATUS = "/v1/vehicle/climate-status";
+    public static final String ENDPOINT_CLIMATE_SETTINGS = "/v1/vehicle/climate-settings";
+    /** POST {"command":"door-lock"|"door-unlock"|"hazard-on"|"hazard-off"|"sound-horn"|"find-vehicle"|...} */
+    public static final String ENDPOINT_COMMAND = "/v1/global/remote/command";
+    /** POST {"command":"start","temperature":{"value":21,"unit":"C"},"duration":20} or {"command":"stop"} */
+    public static final String ENDPOINT_CLIMATE_CONTROL = "/v2/remote/climate-control";
+    /** POST {"command":"CHARGE_NOW"} */
+    public static final String ENDPOINT_ELECTRIC_COMMAND = "/v1/global/remote/electric/command";
 
     private static final int[] BACKOFF_SECONDS = { 2, 4, 8 };
 
@@ -254,18 +261,28 @@ public class MyToyotaApiClient {
     }
 
     public JsonObject post(String endpoint, @Nullable String vin) throws MyToyotaApiException {
-        return request("POST", endpoint, vin);
+        return request("POST", endpoint, vin, null);
+    }
+
+    /** POST with a JSON body: the remote commands. */
+    public JsonObject post(String endpoint, @Nullable String vin, JsonObject body) throws MyToyotaApiException {
+        return request("POST", endpoint, vin, body);
     }
 
     private JsonObject request(String method, String endpoint, @Nullable String vin) throws MyToyotaApiException {
+        return request(method, endpoint, vin, null);
+    }
+
+    private JsonObject request(String method, String endpoint, @Nullable String vin, @Nullable JsonObject body)
+            throws MyToyotaApiException {
         login();
         HttpResponse<String> resp = null;
         for (int attempt = 0; attempt <= BACKOFF_SECONDS.length; attempt++) {
-            resp = send(buildApiRequest(method, endpoint, vin));
+            resp = send(buildApiRequest(method, endpoint, vin, body));
             int code = resp.statusCode();
             if (code == 200 || code == 202) {
-                String body = resp.body();
-                return body.isEmpty() ? new JsonObject() : JsonParser.parseString(body).getAsJsonObject();
+                String text = resp.body();
+                return text.isEmpty() ? new JsonObject() : JsonParser.parseString(text).getAsJsonObject();
             }
             if (code == 401 && attempt == 0) {
                 logger.debug("{} {} returned 401, logging in again", method, endpoint);
@@ -290,8 +307,8 @@ public class MyToyotaApiClient {
                 : resp.statusCode() + " " + shortBody(resp.body())));
     }
 
-    private HttpRequest buildApiRequest(String method, String endpoint, @Nullable String vin)
-            throws MyToyotaApiException {
+    private HttpRequest buildApiRequest(String method, String endpoint, @Nullable String vin,
+            @Nullable JsonObject body) throws MyToyotaApiException {
         String token = accessToken;
         String userId = uuid;
         if (token == null || userId == null) {
@@ -311,7 +328,9 @@ public class MyToyotaApiClient {
             b.header("vin", vin);
         }
         if ("POST".equals(method)) {
-            b.header("content-type", "application/json").POST(HttpRequest.BodyPublishers.noBody());
+            b.header("content-type", "application/json").header("datetime", String.valueOf(System.currentTimeMillis()))
+                    .POST(body == null ? HttpRequest.BodyPublishers.noBody()
+                            : HttpRequest.BodyPublishers.ofString(body.toString()));
         } else {
             b.GET();
         }

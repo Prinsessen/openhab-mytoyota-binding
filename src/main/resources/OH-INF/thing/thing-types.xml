@@ -156,8 +156,27 @@
 
 	<channel-group-type id="control">
 		<label>Control</label>
+		<description>Remote commands as the MyToyota app sends them. The cloud answers with a return code (000000 =
+			accepted) shown on lastCommandResult; the car's own state channels are polled again 45 s later to confirm.</description>
 		<channels>
 			<channel id="refresh" typeId="refresh"/>
+			<channel id="lock" typeId="lock"/>
+			<channel id="hazardLights" typeId="hazard-command"/>
+			<channel id="horn" typeId="trigger-command">
+				<label>Sound Horn</label>
+			</channel>
+			<channel id="findVehicle" typeId="trigger-command">
+				<label>Find Vehicle</label>
+				<description>Flashes the lights (and beeps on some models).</description>
+			</channel>
+			<channel id="climate" typeId="climate-command"/>
+			<channel id="climateTemperature" typeId="climate-temperature"/>
+			<channel id="climateDuration" typeId="climate-duration"/>
+			<channel id="chargeNow" typeId="trigger-command">
+				<label>Charge Now</label>
+				<description>Start charging immediately, overriding a charging schedule, while plugged in.</description>
+			</channel>
+			<channel id="lastCommandResult" typeId="command-result"/>
 			<channel id="lastWake" typeId="timestamp">
 				<label>Last Wake Request</label>
 			</channel>
@@ -268,6 +287,56 @@
 		<label>Refresh From Car</label>
 		<description>Send ON to wake the car for a fresh state of charge and door/window state; the vehicle is polled
 			again 45 seconds later. Each request wakes the car's modem, so do not automate it every minute.</description>
+	</channel-type>
+
+	<channel-type id="lock">
+		<item-type>Switch</item-type>
+		<label>Lock</label>
+		<description>ON locks the doors, OFF unlocks them. Read back on status#locked after the confirming poll.</description>
+		<autoUpdatePolicy>veto</autoUpdatePolicy>
+	</channel-type>
+
+	<channel-type id="hazard-command">
+		<item-type>Switch</item-type>
+		<label>Hazard Lights</label>
+		<description>ON switches the hazard lights on, OFF off.</description>
+		<autoUpdatePolicy>veto</autoUpdatePolicy>
+	</channel-type>
+
+	<channel-type id="trigger-command">
+		<item-type>Switch</item-type>
+		<label>Command</label>
+		<description>Send ON to run the command once; the channel returns to OFF.</description>
+		<autoUpdatePolicy>veto</autoUpdatePolicy>
+	</channel-type>
+
+	<channel-type id="climate-command">
+		<item-type>Switch</item-type>
+		<label>Climate</label>
+		<description>ON starts the remote climate with climateTemperature for climateDuration minutes, OFF stops it.
+			Confirmation on climate#status.</description>
+		<autoUpdatePolicy>veto</autoUpdatePolicy>
+	</channel-type>
+
+	<channel-type id="climate-temperature">
+		<item-type>Number:Temperature</item-type>
+		<label>Climate Temperature</label>
+		<description>Target temperature for the next climate start. Seeded from the car's saved setting.</description>
+		<state min="16" max="30" step="0.5" pattern="%.1f %unit%"/>
+	</channel-type>
+
+	<channel-type id="climate-duration">
+		<item-type>Number:Time</item-type>
+		<label>Climate Duration</label>
+		<description>Minutes the remote climate runs. Seeded from the car's saved setting.</description>
+		<state min="5" max="60" step="5" pattern="%.0f min"/>
+	</channel-type>
+
+	<channel-type id="command-result">
+		<item-type>String</item-type>
+		<label>Last Command Result</label>
+		<description>The last command and the cloud's return code, e.g. "door-lock: 000000 (Success)".</description>
+		<state readOnly="true"/>
 	</channel-type>
 
 	<channel-type id="timestamp" advanced="true">

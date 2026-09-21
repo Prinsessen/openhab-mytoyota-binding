@@ -65,6 +65,15 @@ public class MyToyotaBindingConstants {
     public static final String CHANNEL_CONTROL_REFRESH = "control#refresh";
     public static final String CHANNEL_CONTROL_LAST_WAKE = "control#lastWake";
     public static final String CHANNEL_CONTROL_LAST_POLL = "control#lastPoll";
+    public static final String CHANNEL_CONTROL_LOCK = "control#lock";
+    public static final String CHANNEL_CONTROL_HAZARD = "control#hazardLights";
+    public static final String CHANNEL_CONTROL_HORN = "control#horn";
+    public static final String CHANNEL_CONTROL_FIND = "control#findVehicle";
+    public static final String CHANNEL_CONTROL_CLIMATE = "control#climate";
+    public static final String CHANNEL_CONTROL_CLIMATE_TEMPERATURE = "control#climateTemperature";
+    public static final String CHANNEL_CONTROL_CLIMATE_DURATION = "control#climateDuration";
+    public static final String CHANNEL_CONTROL_CHARGE_NOW = "control#chargeNow";
+    public static final String CHANNEL_CONTROL_LAST_RESULT = "control#lastCommandResult";
 
     // thing properties (vehicle)
     public static final String PROPERTY_VIN = "vin";

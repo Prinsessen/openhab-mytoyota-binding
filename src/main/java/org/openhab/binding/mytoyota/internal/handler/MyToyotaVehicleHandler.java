@@ -77,6 +77,10 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
     private @Nullable ScheduledFuture<?> repollJob;
     private Instant lastWake = Instant.EPOCH;
     private boolean charging;
+    /** Setpoints for a climate start; seeded once from the car's saved settings. */
+    private double climateTemperature = 21;
+    private int climateDuration = 20;
+    private boolean climateSeeded;
 
     public MyToyotaVehicleHandler(Thing thing) {
         super(thing);
@@ -138,13 +142,134 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             scheduler.execute(this::poll);
             return;
         }
-        if (CHANNEL_CONTROL_REFRESH.equals(channelUID.getId()) && command == OnOffType.ON) {
-            scheduler.execute(() -> {
-                wake(true);
-                updateState(CHANNEL_CONTROL_REFRESH, OnOffType.OFF);
-                scheduleRepoll();
-            });
+        String id = channelUID.getId();
+        switch (id) {
+            case CHANNEL_CONTROL_REFRESH -> {
+                if (command == OnOffType.ON) {
+                    scheduler.execute(() -> {
+                        wake(true);
+                        updateState(CHANNEL_CONTROL_REFRESH, OnOffType.OFF);
+                        scheduleRepoll();
+                    });
+                }
+            }
+            case CHANNEL_CONTROL_LOCK -> remoteCommand(command == OnOffType.ON ? "door-lock" : "door-unlock");
+            case CHANNEL_CONTROL_HAZARD -> remoteCommand(command == OnOffType.ON ? "hazard-on" : "hazard-off");
+            case CHANNEL_CONTROL_HORN -> {
+                if (command == OnOffType.ON) {
+                    remoteCommand("sound-horn");
+                    updateState(CHANNEL_CONTROL_HORN, OnOffType.OFF);
+                }
+            }
+            case CHANNEL_CONTROL_FIND -> {
+                if (command == OnOffType.ON) {
+                    remoteCommand("find-vehicle");
+                    updateState(CHANNEL_CONTROL_FIND, OnOffType.OFF);
+                }
+            }
+            case CHANNEL_CONTROL_CLIMATE -> climateCommand(command == OnOffType.ON);
+            case CHANNEL_CONTROL_CLIMATE_TEMPERATURE -> {
+                Double t = commandNumber(command);
+                if (t != null) {
+                    climateTemperature = t;
+                    updateState(CHANNEL_CONTROL_CLIMATE_TEMPERATURE, new QuantityType<>(t, SIUnits.CELSIUS));
+                }
+            }
+            case CHANNEL_CONTROL_CLIMATE_DURATION -> {
+                Double d = commandNumber(command);
+                if (d != null) {
+                    climateDuration = Math.max(1, d.intValue());
+                    updateState(CHANNEL_CONTROL_CLIMATE_DURATION, new QuantityType<>(climateDuration, Units.MINUTE));
+                }
+            }
+            case CHANNEL_CONTROL_CHARGE_NOW -> {
+                if (command == OnOffType.ON) {
+                    JsonObject body = new JsonObject();
+                    body.addProperty("command", "CHARGE_NOW");
+                    sendRemote(MyToyotaApiClient.ENDPOINT_ELECTRIC_COMMAND, body, "charge-now");
+                    updateState(CHANNEL_CONTROL_CHARGE_NOW, OnOffType.OFF);
+                }
+            }
+            default -> {
+                // read-only channel
+            }
         }
+    }
+
+    // ------------------------------------------------------------ remote commands
+
+    /** {"command":"door-lock"} and friends on /v1/global/remote/command */
+    private void remoteCommand(String name) {
+        JsonObject body = new JsonObject();
+        body.addProperty("command", name);
+        sendRemote(MyToyotaApiClient.ENDPOINT_COMMAND, body, name);
+    }
+
+    /** Climate start with the held temperature and duration, or stop. */
+    private void climateCommand(boolean start) {
+        JsonObject body = new JsonObject();
+        body.addProperty("command", start ? "start" : "stop");
+        if (start) {
+            JsonObject temp = new JsonObject();
+            temp.addProperty("value", climateTemperature);
+            temp.addProperty("unit", "C");
+            body.add("temperature", temp);
+            body.addProperty("duration", climateDuration);
+        }
+        sendRemote(MyToyotaApiClient.ENDPOINT_CLIMATE_CONTROL, body, start ? "climate-start" : "climate-stop");
+    }
+
+    /**
+     * Sends a command, shows the cloud's return code on lastCommandResult, and polls the car 45 s later so
+     * the state channels confirm what happened. Return code 000000 means the gateway accepted the request;
+     * whether the car did it is only visible in the state channels afterwards.
+     */
+    private void sendRemote(String endpoint, JsonObject body, String label) {
+        scheduler.execute(() -> {
+            MyToyotaAccountHandler account = getAccount();
+            MyToyotaApiClient client = account == null ? null : account.getClient();
+            if (client == null) {
+                updateState(CHANNEL_CONTROL_LAST_RESULT, new StringType(label + ": account offline"));
+                return;
+            }
+            try {
+                JsonObject r = client.post(endpoint, vin, body);
+                String code = string(payload(r), "returnCode");
+                String msg = firstMessage(r);
+                String result = label + ": " + (code == null ? "no return code" : code)
+                        + (msg == null ? "" : " (" + msg + ")");
+                logger.info("Remote command on {}: {}", shortVin(), result);
+                updateState(CHANNEL_CONTROL_LAST_RESULT, new StringType(result));
+                lastWake = Instant.now();
+                scheduleRepoll();
+            } catch (MyToyotaApiException e) {
+                logger.warn("Remote command {} on {} failed: {}", label, shortVin(), e.getMessage());
+                updateState(CHANNEL_CONTROL_LAST_RESULT, new StringType(label + ": failed, " + e.getMessage()));
+            }
+        });
+    }
+
+    private static @Nullable String firstMessage(JsonObject resp) {
+        JsonObject status = object(resp, "status");
+        if (status == null) {
+            return null;
+        }
+        JsonElement msgs = status.get("messages");
+        if (msgs == null || !msgs.isJsonArray() || msgs.getAsJsonArray().isEmpty()) {
+            return null;
+        }
+        JsonElement first = msgs.getAsJsonArray().get(0);
+        return first.isJsonObject() ? string(first.getAsJsonObject(), "description") : null;
+    }
+
+    private static @Nullable Double commandNumber(Command command) {
+        if (command instanceof QuantityType<?> q) {
+            return q.doubleValue();
+        }
+        if (command instanceof DecimalType d) {
+            return d.doubleValue();
+        }
+        return null;
     }
 
     // ------------------------------------------------------------------ polling
@@ -175,6 +300,9 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             updateLocation(client.get(MyToyotaApiClient.ENDPOINT_LOCATION, vin));
             updateVehicleStatus(client.get(MyToyotaApiClient.ENDPOINT_VEHICLE_STATUS, vin));
             updateClimate(client.get(MyToyotaApiClient.ENDPOINT_CLIMATE_STATUS, vin));
+            if (!climateSeeded) {
+                seedClimateSettings(client.get(MyToyotaApiClient.ENDPOINT_CLIMATE_SETTINGS, vin));
+            }
             updateState(CHANNEL_CONTROL_LAST_POLL, new DateTimeType(ZonedDateTime.now()));
             if (getThing().getStatus() != ThingStatus.ONLINE) {
                 updateStatus(ThingStatus.ONLINE);
@@ -312,6 +440,23 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
     private void updateClimate(JsonObject resp) {
         String status = string(payload(resp), "status");
         updateState(CHANNEL_CLIMATE_STATUS, status == null ? UnDefType.UNDEF : new StringType(status));
+    }
+
+    /** The car's saved climate settings become the initial setpoints of the climate channels. */
+    private void seedClimateSettings(JsonObject resp) {
+        JsonObject p = payload(resp);
+        JsonObject temperature = object(p, "temperature");
+        Double t = temperature == null ? null : number(temperature.get("value"));
+        Double d = number(p.get("duration"));
+        if (t != null) {
+            climateTemperature = t;
+        }
+        if (d != null && d >= 1) {
+            climateDuration = d.intValue();
+        }
+        updateState(CHANNEL_CONTROL_CLIMATE_TEMPERATURE, new QuantityType<>(climateTemperature, SIUnits.CELSIUS));
+        updateState(CHANNEL_CONTROL_CLIMATE_DURATION, new QuantityType<>(climateDuration, Units.MINUTE));
+        climateSeeded = true;
     }
 
     // ----------------------------------------------------------------- helpers
