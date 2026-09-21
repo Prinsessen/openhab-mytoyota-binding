@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="mytoyota"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:thing="https://openhab.org/schemas/thing-description/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/thing-description/v1.0.0
+                            https://openhab.org/schemas/thing-description-1.0.0.xsd">
+
+	<!-- Bridge: the MyToyota account -->
+	<bridge-type id="account">
+		<label>MyToyota Account</label>
+		<description>Your MyToyota (Toyota, Lexus or Subaru Europe) app login. The vehicles of the account are found by
+			discovery.</description>
+
+		<config-description>
+			<parameter name="username" type="text" required="true">
+				<label>Username</label>
+				<description>The e-mail address you log into the MyToyota app with.</description>
+			</parameter>
+			<parameter name="password" type="text" required="true">
+				<label>Password</label>
+				<context>password</context>
+			</parameter>
+			<parameter name="brand" type="text" required="false">
+				<label>Brand</label>
+				<description>T = Toyota, L = Lexus, S = Subaru.</description>
+				<default>T</default>
+				<options>
+					<option value="T">Toyota</option>
+					<option value="L">Lexus</option>
+					<option value="S">Subaru</option>
+				</options>
+				<limitToOptions>true</limitToOptions>
+			</parameter>
+			<parameter name="pollInterval" type="integer" min="1" max="1440" unit="min" required="false">
+				<label>Poll Interval</label>
+				<description>Minutes between reads of every vehicle under this account. Reads only fetch what the cloud
+					already holds; they do not wake the car.</description>
+				<default>5</default>
+			</parameter>
+			<parameter name="wakeWhileCharging" type="integer" min="0" max="1440" unit="min" required="false">
+				<label>Wake While Charging</label>
+				<description>While the car reports that it is charging, ask it for a fresh state of charge before a
+					poll, at most every this many minutes. The car's modem is woken by that request. 0 disables it.</description>
+				<default>10</default>
+			</parameter>
+		</config-description>
+	</bridge-type>
+
+	<!-- Thing: one vehicle -->
+	<thing-type id="vehicle">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="account"/>
+		</supported-bridge-type-refs>
+
+		<label>Toyota Vehicle</label>
+		<description>A vehicle of the account: battery, range, charging, odometer, last parked position, doors, windows,
+			lights and climate state.</description>
+
+		<channel-groups>
+			<channel-group id="battery" typeId="battery"/>
+			<channel-group id="telemetry" typeId="telemetry"/>
+			<channel-group id="location" typeId="location"/>
+			<channel-group id="status" typeId="status"/>
+			<channel-group id="climate" typeId="climate"/>
+			<channel-group id="control" typeId="control"/>
+		</channel-groups>
+
+		<properties>
+			<property name="vendor">Toyota</property>
+		</properties>
+		<representation-property>vin</representation-property>
+
+		<config-description>
+			<parameter name="vin" type="text" required="true">
+				<label>VIN</label>
+				<description>Vehicle identification number, 17 characters. Filled in by discovery.</description>
+			</parameter>
+		</config-description>
+	</thing-type>
+
+	<!-- Channel groups -->
+	<channel-group-type id="battery">
+		<label>Battery</label>
+		<channels>
+			<channel id="level" typeId="battery-level"/>
+			<channel id="range" typeId="range">
+				<label>EV Range</label>
+			</channel>
+			<channel id="rangeWithAc" typeId="range">
+				<label>EV Range with A/C</label>
+			</channel>
+			<channel id="chargingStatus" typeId="charging-status"/>
+			<channel id="charging" typeId="charging"/>
+			<channel id="remainingChargeTime" typeId="remaining-charge-time"/>
+			<channel id="lastUpdate" typeId="timestamp">
+				<label>Battery Reported</label>
+			</channel>
+		</channels>
+	</channel-group-type>
+
+	<channel-group-type id="telemetry">
+		<label>Telemetry</label>
+		<channels>
+			<channel id="odometer" typeId="odometer"/>
+			<channel id="distanceToEmpty" typeId="range">
+				<label>Distance to Empty</label>
+			</channel>
+			<channel id="lastUpdate" typeId="timestamp">
+				<label>Telemetry Reported</label>
+			</channel>
+		</channels>
+	</channel-group-type>
+
+	<channel-group-type id="location">
+		<label>Location</label>
+		<channels>
+			<channel id="position" typeId="position"/>
+			<channel id="name" typeId="location-name"/>
+			<channel id="lastUpdate" typeId="timestamp">
+				<label>Position Acquired</label>
+			</channel>
+		</channels>
+	</channel-group-type>
+
+	<channel-group-type id="status">
+		<label>Doors, Windows and Lights</label>
+		<channels>
+			<channel id="overall" typeId="overall-status"/>
+			<channel id="warnings" typeId="warnings"/>
+			<channel id="locked" typeId="locked"/>
+			<channel id="anyDoorOpen" typeId="open-contact">
+				<label>Any Door Open</label>
+			</channel>
+			<channel id="anyWindowOpen" typeId="open-contact">
+				<label>Any Window Open</label>
+			</channel>
+			<channel id="trunkOpen" typeId="open-contact">
+				<label>Trunk Open</label>
+			</channel>
+			<channel id="hoodOpen" typeId="open-contact">
+				<label>Hood Open</label>
+			</channel>
+			<channel id="hazardLights" typeId="hazard-lights"/>
+			<channel id="lastUpdate" typeId="timestamp">
+				<label>Status Reported</label>
+			</channel>
+		</channels>
+	</channel-group-type>
+
+	<channel-group-type id="climate">
+		<label>Climate</label>
+		<channels>
+			<channel id="status" typeId="climate-status"/>
+		</channels>
+	</channel-group-type>
+
+	<channel-group-type id="control">
+		<label>Control</label>
+		<channels>
+			<channel id="refresh" typeId="refresh"/>
+			<channel id="lastWake" typeId="timestamp">
+				<label>Last Wake Request</label>
+			</channel>
+			<channel id="lastPoll" typeId="timestamp">
+				<label>Last Poll</label>
+			</channel>
+		</channels>
+	</channel-group-type>
+
+	<!-- Channel types -->
+	<channel-type id="battery-level">
+		<item-type>Number:Dimensionless</item-type>
+		<label>Battery Level</label>
+		<description>State of charge as the car last reported it.</description>
+		<category>BatteryLevel</category>
+		<tags>
+			<tag>Measurement</tag>
+			<tag>Energy</tag>
+		</tags>
+		<state readOnly="true" pattern="%.0f %%"/>
+	</channel-type>
+
+	<channel-type id="range">
+		<item-type>Number:Length</item-type>
+		<label>Range</label>
+		<state readOnly="true" pattern="%.0f %unit%"/>
+	</channel-type>
+
+	<channel-type id="charging-status">
+		<item-type>String</item-type>
+		<label>Charging Status</label>
+		<description>As reported by the car, for example none, charging, chargeComplete.</description>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="charging">
+		<item-type>Switch</item-type>
+		<label>Charging</label>
+		<description>ON while the charging status says charging.</description>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="remaining-charge-time">
+		<item-type>Number:Time</item-type>
+		<label>Remaining Charge Time</label>
+		<state readOnly="true" pattern="%.0f min"/>
+	</channel-type>
+
+	<channel-type id="odometer">
+		<item-type>Number:Length</item-type>
+		<label>Odometer</label>
+		<state readOnly="true" pattern="%.0f %unit%"/>
+	</channel-type>
+
+	<channel-type id="position">
+		<item-type>Location</item-type>
+		<label>Last Parked Position</label>
+		<description>Only updated when the car is parked.</description>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="location-name" advanced="true">
+		<item-type>String</item-type>
+		<label>Position Name</label>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="overall-status" advanced="true">
+		<item-type>String</item-type>
+		<label>Overall Status</label>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="warnings" advanced="true">
+		<item-type>Number</item-type>
+		<label>Warning Count</label>
+		<state readOnly="true" pattern="%d"/>
+	</channel-type>
+
+	<channel-type id="locked">
+		<item-type>Switch</item-type>
+		<label>Locked</label>
+		<description>ON when every door reports locked.</description>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="open-contact">
+		<item-type>Contact</item-type>
+		<label>Open</label>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="hazard-lights" advanced="true">
+		<item-type>Switch</item-type>
+		<label>Hazard Lights</label>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="climate-status">
+		<item-type>String</item-type>
+		<label>Climate Status</label>
+		<description>stopped, starting or running.</description>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="refresh">
+		<item-type>Switch</item-type>
+		<label>Refresh From Car</label>
+		<description>Send ON to wake the car for a fresh state of charge and door/window state; the vehicle is polled
+			again 45 seconds later. Each request wakes the car's modem, so do not automate it every minute.</description>
+	</channel-type>
+
+	<channel-type id="timestamp" advanced="true">
+		<item-type>DateTime</item-type>
+		<label>Timestamp</label>
+		<state readOnly="true"/>
+	</channel-type>
+
+</thing:thing-descriptions>
