@@ -1,11 +1,11 @@
 # Changelog
 
-## 1.2.0 (unreleased)
+## 1.2.0 — 2026-09-21
 
 Notifications: the messages the app shows, as channels (latest, time, category,
 unread count, five newest). Includes 1.1.1's command-state mirroring.
 
-## 1.1.1 (unreleased)
+## 1.1.1 — 2026-09-21 (folded into 1.2.0)
 
 Command channels mirror the car: `control#lock` follows the door lock state,
 `control#hazardLights` the hazard lights, `control#climate` the climate status; the

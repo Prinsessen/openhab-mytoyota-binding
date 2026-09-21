@@ -4,7 +4,7 @@
 | type | binding |
 | author | Nanna Agesen |
 | version range | \[5.0.0;6.0.0) |
-| download | [org.openhab.binding.mytoyota-1.1.0.jar](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/download/v1.1.0/org.openhab.binding.mytoyota-1.1.0.jar) |
+| download | [org.openhab.binding.mytoyota-1.2.0.jar](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/download/v1.2.0/org.openhab.binding.mytoyota-1.2.0.jar) |
 
 # MyToyota Binding — Toyota, Lexus and Subaru (Europe)
 
@@ -68,6 +68,16 @@ e-mail and password.
 | `status#warnings` | Number | Warning count |
 | `status#lastUpdate` | DateTime | |
 | `climate#status` | String | `stopped`, `starting`, `running` |
+
+### Vehicle — Notifications (read-only) — what the app shows
+
+| Channel | Type | Description |
+|----|----|----|
+| `notifications#latest` | String | The newest message, e.g. "Your request could not be completed because a keyfob was detected in your vehicle." |
+| `notifications#latestTime` | DateTime | When it was issued |
+| `notifications#latestCategory` | String | `RemoteControl`, `VehicleStatusAlert`, … |
+| `notifications#unread` | Number | Messages not yet opened in the app |
+| `notifications#recent` | String | The five newest, one per line with date and time |
 
 ### Vehicle — Control (read/write)
 
@@ -139,7 +149,7 @@ poll, and why you should not automate the refresh every minute.
 
 ## Tested on
 
-- **Toyota bZ4X 2025** (Denmark): all reads, the wake, and `lock`.
+- **Toyota bZ4X 2025** (Denmark): all reads, the notifications, the wake, and `lock` (including the car refusing it with the key fob inside, reported on `notifications#latest`).
 
 The other commands use the same request shape as the app and are expected to work on cars whose `capabilities`
 thing property lists them (door lock, climate, hazard, horn, …). **If you own a different Toyota, Lexus or Subaru,
@@ -149,10 +159,10 @@ please post what works** — model, year and the `capabilities` property are all
 
 ## Resources
 
-* **Download JAR:** [org.openhab.binding.mytoyota-1.1.0.jar](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/download/v1.1.0/org.openhab.binding.mytoyota-1.1.0.jar)
+* **Download JAR:** [org.openhab.binding.mytoyota-1.2.0.jar](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/download/v1.2.0/org.openhab.binding.mytoyota-1.2.0.jar)
 * **Source Code:** [github.com/Prinsessen/openhab-mytoyota-binding](https://github.com/Prinsessen/openhab-mytoyota-binding)
 * **Full Documentation:** [README.md](https://github.com/Prinsessen/openhab-mytoyota-binding/blob/main/README.md)
-* **Release:** [v1.1.0 — MyToyota Binding 1.1.0](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/tag/v1.1.0)
+* **Release:** [v1.2.0 — MyToyota Binding 1.2.0](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/tag/v1.2.0)
 * **License:** EPL-2.0
 
 ---
