@@ -135,6 +135,10 @@ Download the JAR from the latest release and copy it into openHAB's `addons` fol
     https://github.com/Prinsessen/openhab-mytoyota-binding/releases/download/v1.1.0/org.openhab.binding.mytoyota-1.1.0.jar
     sha256 f82360a1cfa1d2778dd21e417d114a3472c0fd6759ac6be204cae1fc8c9aa0ab
 
+## Community
+
+Marketplace post: https://community.openhab.org/t/mytoyota-binding-toyota-lexus-and-subaru-europe/170453
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md).
