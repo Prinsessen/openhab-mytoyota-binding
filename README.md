@@ -57,7 +57,7 @@ reports (door lock, climate, ...).
 | `location#name` | String | the cloud's name for it, e.g. "Last Parked" |
 | `location#lastUpdate` | DateTime | when the position was acquired |
 | `status#overall` | String | `ok` or a warning state |
-| `status#warnings` | Number | warning count |
+| `status#warnings` | Number | how many items on the app's status page are red (unlocked/open doors, open windows); five unlocked doors = 5. Health warnings such as tyre pressure are in `health#warnings` |
 | `status#locked` | Switch | ON when every door reports locked |
 | `status#anyDoorOpen` | Contact | OPEN when any door is open (hood and trunk excluded) |
 | `status#anyWindowOpen` | Contact | |

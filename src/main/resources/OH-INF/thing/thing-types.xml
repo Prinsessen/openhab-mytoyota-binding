@@ -327,7 +327,9 @@
 
 	<channel-type id="warnings" advanced="true">
 		<item-type>Number</item-type>
-		<label>Warning Count</label>
+		<label>Status Marks In Red</label>
+		<description>How many items on the app's status page are red: unlocked or open doors, open windows. Verified on
+			a bZ4X: five unlocked doors = 5. Not the health warnings (tyre pressure etc.), see the health group.</description>
 		<state readOnly="true" pattern="%d"/>
 	</channel-type>
 
