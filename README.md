@@ -66,6 +66,11 @@ reports (door lock, climate, ...).
 | `status#hazardLights` | Switch | |
 | `status#lastUpdate` | DateTime | |
 | `climate#status` | String | `stopped`, `starting`, `running` |
+| `notifications#latest` | String | the newest message the app shows, e.g. "Your request could not be completed because a keyfob was detected in your vehicle." |
+| `notifications#latestTime` | DateTime | when it was issued |
+| `notifications#latestCategory` | String | `RemoteControl`, `VehicleStatusAlert`, ... |
+| `notifications#unread` | Number | messages not yet opened in the app |
+| `notifications#recent` | String | the five newest, one per line with date and time |
 | `control#refresh` | Switch | send ON: wake the car for fresh battery and door state, poll again 45 s later; resets to OFF |
 | `control#lock` | Switch | ON locks the doors, OFF unlocks; confirm on `status#locked` after the poll 45 s later |
 | `control#hazardLights` | Switch | hazard lights on / off |
@@ -95,6 +100,15 @@ Location             Car_Position "Position"            { channel="mytoyota:vehi
 Switch               Car_Locked   "Locked [%s]"         { channel="mytoyota:vehicle:home:bz4x:status#locked" }
 Switch               Car_Refresh  "Refresh from car"    { channel="mytoyota:vehicle:home:bz4x:control#refresh" }
 ```
+
+## Notifications
+
+The cloud keeps the messages the app shows (`/v2/notification/history`): lock and
+unlock confirmations, "Your car is unlocked", "a keyfob was detected in your
+vehicle", "Climate Start requires at least 31% battery", and so on. The binding
+reads the list on every poll and exposes the newest message, its time and
+category, the unread count and the five newest as text. The car's name or VIN
+prefix is stripped from the text. The binding cannot mark messages as read.
 
 ## Remote commands
 

@@ -62,6 +62,7 @@
 			<channel-group id="location" typeId="location"/>
 			<channel-group id="status" typeId="status"/>
 			<channel-group id="climate" typeId="climate"/>
+			<channel-group id="notifications" typeId="notifications"/>
 			<channel-group id="control" typeId="control"/>
 		</channel-groups>
 
@@ -151,6 +152,27 @@
 		<label>Climate</label>
 		<channels>
 			<channel id="status" typeId="climate-status"/>
+		</channels>
+	</channel-group-type>
+
+	<channel-group-type id="notifications">
+		<label>Notifications</label>
+		<description>The messages the MyToyota app shows: "Your car is unlocked", "a keyfob was detected", "Climate Start
+			requires at least 31% battery", command confirmations. Read on every poll from the cloud's notification
+			history.</description>
+		<channels>
+			<channel id="latest" typeId="notification-text">
+				<label>Latest Message</label>
+			</channel>
+			<channel id="latestTime" typeId="timestamp">
+				<label>Latest Message Time</label>
+			</channel>
+			<channel id="latestCategory" typeId="notification-category"/>
+			<channel id="unread" typeId="notification-unread"/>
+			<channel id="recent" typeId="notification-text">
+				<label>Recent Messages</label>
+				<description>The five newest, one per line, each with its date and time.</description>
+			</channel>
 		</channels>
 	</channel-group-type>
 
@@ -337,6 +359,26 @@
 		<label>Last Command Result</label>
 		<description>The last command and the cloud's return code, e.g. "door-lock: 000000 (Success)".</description>
 		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="notification-text">
+		<item-type>String</item-type>
+		<label>Notification</label>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="notification-category" advanced="true">
+		<item-type>String</item-type>
+		<label>Latest Message Category</label>
+		<description>RemoteControl, VehicleStatusAlert, ...</description>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="notification-unread">
+		<item-type>Number</item-type>
+		<label>Unread Messages</label>
+		<description>Messages not yet opened in the app. The binding cannot mark them read.</description>
+		<state readOnly="true" pattern="%d"/>
 	</channel-type>
 
 	<channel-type id="timestamp" advanced="true">

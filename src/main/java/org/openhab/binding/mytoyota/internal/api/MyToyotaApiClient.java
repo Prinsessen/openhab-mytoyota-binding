@@ -77,6 +77,8 @@ public class MyToyotaApiClient {
     public static final String ENDPOINT_HEALTH = "/v1/vehiclehealth/status";
     public static final String ENDPOINT_CLIMATE_STATUS = "/v1/vehicle/climate-status";
     public static final String ENDPOINT_CLIMATE_SETTINGS = "/v1/vehicle/climate-settings";
+    /** The messages the app shows: payload[0].notifications[], newest first */
+    public static final String ENDPOINT_NOTIFICATIONS = "/v2/notification/history";
     /** POST {"command":"door-lock"|"door-unlock"|"hazard-on"|"hazard-off"|"sound-horn"|"find-vehicle"|...} */
     public static final String ENDPOINT_COMMAND = "/v1/global/remote/command";
     /** POST {"command":"start","temperature":{"value":21,"unit":"C"},"duration":20} or {"command":"stop"} */

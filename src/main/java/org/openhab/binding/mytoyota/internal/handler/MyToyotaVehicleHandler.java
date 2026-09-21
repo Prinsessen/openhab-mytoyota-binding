@@ -51,6 +51,7 @@ import org.openhab.core.types.UnDefType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -301,6 +302,7 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             updateLocation(client.get(MyToyotaApiClient.ENDPOINT_LOCATION, vin));
             updateVehicleStatus(client.get(MyToyotaApiClient.ENDPOINT_VEHICLE_STATUS, vin));
             updateClimate(client.get(MyToyotaApiClient.ENDPOINT_CLIMATE_STATUS, vin));
+            updateNotifications(client.get(MyToyotaApiClient.ENDPOINT_NOTIFICATIONS, vin));
             if (!climateSeeded) {
                 seedClimateSettings(client.get(MyToyotaApiClient.ENDPOINT_CLIMATE_SETTINGS, vin));
             }
@@ -457,6 +459,92 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                 CHANNEL_CONTROL_CHARGE_NOW }) {
             updateState(ch, OnOffType.OFF);
         }
+    }
+
+    /**
+     * The app's own messages ("Your car is unlocked", "a keyfob was detected", "Climate Start requires at
+     * least 31% battery"): newest first, with an unread flag. The car's name or VIN prefix is stripped so the
+     * text reads the same in openHAB as in the app and the VIN stays out of item states and logs.
+     */
+    private String lastNotificationId = "";
+
+    private void updateNotifications(JsonObject resp) {
+        JsonElement pl = resp.get("payload");
+        JsonObject first = null;
+        if (pl != null && pl.isJsonArray() && !pl.getAsJsonArray().isEmpty() && pl.getAsJsonArray().get(0).isJsonObject()) {
+            first = pl.getAsJsonArray().get(0).getAsJsonObject();
+        } else if (pl != null && pl.isJsonObject()) {
+            first = pl.getAsJsonObject();
+        }
+        JsonElement listEl = first == null ? null : first.get("notifications");
+        if (listEl == null || !listEl.isJsonArray()) {
+            return;
+        }
+        JsonArray list = listEl.getAsJsonArray();
+        int unread = 0;
+        StringBuilder recent = new StringBuilder();
+        int shown = 0;
+        for (JsonElement el : list) {
+            if (!el.isJsonObject()) {
+                continue;
+            }
+            JsonObject n = el.getAsJsonObject();
+            JsonElement read = n.get("isRead");
+            if (read != null && read.isJsonPrimitive() && !read.getAsBoolean()) {
+                unread++;
+            }
+            if (shown < 5) {
+                String when = string(n, "notificationDate");
+                String stamp = "";
+                if (when != null) {
+                    try {
+                        stamp = Instant.parse(when).atZone(ZoneId.systemDefault())
+                                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm")) + " ";
+                    } catch (DateTimeParseException e) {
+                        stamp = "";
+                    }
+                }
+                recent.append(shown > 0 ? "\n" : "").append(stamp).append(cleanMessage(string(n, "message")));
+                shown++;
+            }
+        }
+        updateState(CHANNEL_NOTIFY_UNREAD, new DecimalType(unread));
+        updateState(CHANNEL_NOTIFY_RECENT, recent.length() == 0 ? UnDefType.UNDEF : new StringType(recent.toString()));
+        if (list.isEmpty() || !list.get(0).isJsonObject()) {
+            return;
+        }
+        JsonObject latest = list.get(0).getAsJsonObject();
+        String id = string(latest, "messageId");
+        if (id != null && id.equals(lastNotificationId)) {
+            return;
+        }
+        lastNotificationId = id == null ? "" : id;
+        String message = cleanMessage(string(latest, "message"));
+        updateState(CHANNEL_NOTIFY_LATEST, message.isEmpty() ? UnDefType.UNDEF : new StringType(message));
+        updateState(CHANNEL_NOTIFY_LATEST_TIME, dateTime(string(latest, "notificationDate")));
+        String category = string(latest, "category");
+        updateState(CHANNEL_NOTIFY_LATEST_CATEGORY, category == null ? UnDefType.UNDEF : new StringType(category));
+        logger.info("Notification for {}: {}", shortVin(), message);
+    }
+
+    /** "Dream Catcher II : text", "Dream Catcher II: text" or "<VIN>: text" become "text". */
+    private String cleanMessage(@Nullable String raw) {
+        if (raw == null) {
+            return "";
+        }
+        String text = raw.trim();
+        int colon = text.indexOf(':');
+        if (colon > 0 && colon < 40) {
+            String prefix = text.substring(0, colon).trim();
+            if (prefix.equalsIgnoreCase(vin) || prefix.equalsIgnoreCase(getThing().getProperties().getOrDefault(PROPERTY_NICKNAME, " "))
+                    || !prefix.contains(" ") && prefix.length() == 17) {
+                text = text.substring(colon + 1).trim();
+            } else if (prefix.matches("[A-Za-z0-9 '\\-]{2,30}") && text.length() > colon + 2) {
+                // an unknown name-like prefix: strip it too, the app does not repeat it
+                text = text.substring(colon + 1).trim();
+            }
+        }
+        return text.replace(vin, "the car");
     }
 
     /** The car's saved climate settings become the initial setpoints of the climate channels. */

@@ -75,6 +75,13 @@ public class MyToyotaBindingConstants {
     public static final String CHANNEL_CONTROL_CHARGE_NOW = "control#chargeNow";
     public static final String CHANNEL_CONTROL_LAST_RESULT = "control#lastCommandResult";
 
+    // notifications (what the app shows)
+    public static final String CHANNEL_NOTIFY_LATEST = "notifications#latest";
+    public static final String CHANNEL_NOTIFY_LATEST_TIME = "notifications#latestTime";
+    public static final String CHANNEL_NOTIFY_LATEST_CATEGORY = "notifications#latestCategory";
+    public static final String CHANNEL_NOTIFY_UNREAD = "notifications#unread";
+    public static final String CHANNEL_NOTIFY_RECENT = "notifications#recent";
+
     // thing properties (vehicle)
     public static final String PROPERTY_VIN = "vin";
     public static final String PROPERTY_MODEL = "modelName";
