@@ -147,7 +147,7 @@ the bridge OFFLINE with the message from the login service; it retries every
 Download the JAR from the latest release and copy it into openHAB's `addons` folder. No other bundle is needed.
 
     https://github.com/Prinsessen/openhab-mytoyota-binding/releases/download/v1.2.0/org.openhab.binding.mytoyota-1.2.0.jar
-    sha256 f82360a1cfa1d2778dd21e417d114a3472c0fd6759ac6be204cae1fc8c9aa0ab
+    sha256 942bc8a72a4e3b9f9356da6430d41cecacbe2b333fb9d90bae8d516dd7f8792f
 
 ## Community
 
