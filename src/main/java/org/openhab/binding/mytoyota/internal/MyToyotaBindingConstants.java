@@ -68,6 +68,12 @@ public class MyToyotaBindingConstants {
     public static final String CHANNEL_DOORS_HOOD = "doors#hoodOpen";
     public static final String CHANNEL_DOORS_REAR_SEAT = "doors#rearSeatReminder";
 
+    // health: the warnings behind status#warnings, in words
+    public static final String CHANNEL_HEALTH_WARNINGS = "health#warnings";
+    public static final String CHANNEL_HEALTH_WARNING_CODES = "health#warningCodes";
+    public static final String CHANNEL_HEALTH_SEVERITY = "health#severity";
+    public static final String CHANNEL_HEALTH_TIMESTAMP = "health#lastUpdate";
+
     // climate
     public static final String CHANNEL_CLIMATE_STATUS = "climate#status";
 

@@ -303,6 +303,7 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             updateVehicleStatus(client.get(MyToyotaApiClient.ENDPOINT_VEHICLE_STATUS, vin));
             updateClimate(client.get(MyToyotaApiClient.ENDPOINT_CLIMATE_STATUS, vin));
             updateNotifications(client.get(MyToyotaApiClient.ENDPOINT_NOTIFICATIONS, vin));
+            updateHealth(client.get(MyToyotaApiClient.ENDPOINT_HEALTH, vin));
             if (!climateSeeded) {
                 seedClimateSettings(client.get(MyToyotaApiClient.ENDPOINT_CLIMATE_SETTINGS, vin));
             }
@@ -571,6 +572,54 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             }
         }
         return text.replace(vin, "the car");
+    }
+
+    /**
+     * The warnings behind the count on the status page, in words: /v1/vehiclehealth/status lists each active
+     * warning with a code (TIRW), a description ("Tire Pressure Warning System"), a severity and when it began.
+     * Nothing active gives "none".
+     */
+    private void updateHealth(JsonObject resp) {
+        JsonObject p = payload(resp);
+        JsonElement list = p.get("warning");
+        StringBuilder text = new StringBuilder();
+        StringBuilder codes = new StringBuilder();
+        int worst = 0;
+        if (list != null && list.isJsonArray()) {
+            for (JsonElement el : list.getAsJsonArray()) {
+                if (!el.isJsonObject()) {
+                    continue;
+                }
+                JsonObject w = el.getAsJsonObject();
+                String desc = string(w, "wngdesc");
+                String code = string(w, "wngcode");
+                Double sev = number(w.get("severity"));
+                String since = string(w, "wngdcmtime");
+                String sinceText = "";
+                if (since != null) {
+                    try {
+                        sinceText = " since " + Instant.parse(since).atZone(ZoneId.systemDefault())
+                                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm"));
+                    } catch (DateTimeParseException e) {
+                        sinceText = "";
+                    }
+                }
+                if (text.length() > 0) {
+                    text.append("; ");
+                    codes.append(", ");
+                }
+                text.append(desc == null ? (code == null ? "unknown" : code) : desc)
+                        .append(sev == null ? "" : " (severity " + sev.intValue() + ")").append(sinceText);
+                codes.append(code == null ? "?" : code);
+                if (sev != null && sev.intValue() > worst) {
+                    worst = sev.intValue();
+                }
+            }
+        }
+        updateState(CHANNEL_HEALTH_WARNINGS, new StringType(text.length() == 0 ? "none" : text.toString()));
+        updateState(CHANNEL_HEALTH_WARNING_CODES, new StringType(codes.length() == 0 ? "" : codes.toString()));
+        updateState(CHANNEL_HEALTH_SEVERITY, new DecimalType(worst));
+        updateState(CHANNEL_HEALTH_TIMESTAMP, dateTime(string(p, "wnglastUpdTime")));
     }
 
     /** The car's saved climate settings become the initial setpoints of the climate channels. */

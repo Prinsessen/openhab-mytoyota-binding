@@ -70,6 +70,10 @@ reports (door lock, climate, ...).
 | `doors#rearSeatReminder` | String | `ok`, `notDetected`, or `warning: …` |
 | `windows#driver` … `windows#rearRight` | String | `close`, `open`, `unknown` (some cars do not report the rear windows) |
 | `lights#hazard`, `lights#tail`, `lights#head` | Switch | |
+| `health#warnings` | String | active warnings in words with severity and start time, e.g. "Tire Pressure Warning System (severity 4) since 21/09 16:45"; "none" when clear |
+| `health#warningCodes` | String | Toyota's codes, e.g. `TIRW` |
+| `health#severity` | Number | worst active severity, 0 when none |
+| `health#lastUpdate` | DateTime | |
 | `climate#status` | String | `stopped`, `starting`, `running` |
 | `notifications#latest` | String | the newest message the app shows, e.g. "Your request could not be completed because a keyfob was detected in your vehicle." |
 | `notifications#latestTime` | DateTime | when it was issued |

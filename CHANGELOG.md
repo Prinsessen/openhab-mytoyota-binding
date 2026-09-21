@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0 (unreleased)
+
+Health: the warnings behind the warning count, in words (`health#warnings`,
+codes, worst severity, timestamp). First seen: "Tire Pressure Warning System"
+while the car sat on a lift with its wheels off.
+
 ## 1.3.0 (unreleased)
 
 Per-door, per-window and per-light channels (groups `doors`, `windows`, `lights`),

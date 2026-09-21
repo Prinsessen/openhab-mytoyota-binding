@@ -64,6 +64,7 @@
 			<channel-group id="doors" typeId="doors"/>
 			<channel-group id="windows" typeId="windows"/>
 			<channel-group id="lights" typeId="lights"/>
+			<channel-group id="health" typeId="health"/>
 			<channel-group id="climate" typeId="climate"/>
 			<channel-group id="notifications" typeId="notifications"/>
 			<channel-group id="control" typeId="control"/>
@@ -186,6 +187,17 @@
 			<channel id="hazard" typeId="light-state"><label>Hazard Lights</label></channel>
 			<channel id="tail" typeId="light-state"><label>Tail Lights</label></channel>
 			<channel id="head" typeId="light-state"><label>Headlights</label></channel>
+		</channels>
+	</channel-group-type>
+
+	<channel-group-type id="health">
+		<label>Health</label>
+		<description>The warnings behind the warning count, in words, from the vehicle health service.</description>
+		<channels>
+			<channel id="warnings" typeId="health-warnings"/>
+			<channel id="warningCodes" typeId="health-codes"/>
+			<channel id="severity" typeId="health-severity"/>
+			<channel id="lastUpdate" typeId="timestamp"><label>Health Reported</label></channel>
 		</channels>
 	</channel-group-type>
 
@@ -446,6 +458,28 @@
 		<label>Rear Seat Reminder</label>
 		<description>ok, notDetected, or warning: something may have been left on the rear seat.</description>
 		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="health-warnings">
+		<item-type>String</item-type>
+		<label>Active Warnings</label>
+		<description>Each active warning with its severity and start time, or "none". Example: "Tire Pressure Warning
+			System (severity 4) since 21/09 16:45".</description>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="health-codes" advanced="true">
+		<item-type>String</item-type>
+		<label>Warning Codes</label>
+		<description>Toyota's codes, e.g. TIRW, comma separated.</description>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="health-severity">
+		<item-type>Number</item-type>
+		<label>Worst Severity</label>
+		<description>The highest severity among active warnings; 0 when none.</description>
+		<state readOnly="true" pattern="%d"/>
 	</channel-type>
 
 	<channel-type id="timestamp" advanced="true">
