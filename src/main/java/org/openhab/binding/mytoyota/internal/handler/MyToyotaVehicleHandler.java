@@ -241,6 +241,7 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                 logger.info("Remote command on {}: {}", shortVin(), result);
                 updateState(CHANNEL_CONTROL_LAST_RESULT, new StringType(result));
                 lastWake = Instant.now();
+                updateState(CHANNEL_CONTROL_LAST_WAKE, new DateTimeType(ZonedDateTime.now()));
                 scheduleRepoll();
             } catch (MyToyotaApiException e) {
                 logger.warn("Remote command {} on {} failed: {}", label, shortVin(), e.getMessage());
@@ -306,6 +307,7 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             updateState(CHANNEL_CONTROL_LAST_POLL, new DateTimeType(ZonedDateTime.now()));
             if (getThing().getStatus() != ThingStatus.ONLINE) {
                 updateStatus(ThingStatus.ONLINE);
+                restOneShotChannels();
             }
             account.reportCommunication(true, null);
         } catch (MyToyotaApiException e) {
@@ -414,6 +416,8 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                 }
             }
             updateState(CHANNEL_STATUS_LOCKED, anyLockKnown ? OnOffType.from(allLocked) : UnDefType.UNDEF);
+            // the lock command channel mirrors the car, so a Switch item shows the real state
+            updateState(CHANNEL_CONTROL_LOCK, anyLockKnown ? OnOffType.from(allLocked) : UnDefType.UNDEF);
             updateState(CHANNEL_STATUS_DOOR_OPEN, anyOpen ? OpenClosedType.OPEN : OpenClosedType.CLOSED);
             updateState(CHANNEL_STATUS_TRUNK_OPEN, openClosed(nested(object(doors, "rearBack"), "openStatus", "status")));
             updateState(CHANNEL_STATUS_HOOD_OPEN, openClosed(nested(object(doors, "hood"), "openStatus", "status")));
@@ -433,13 +437,26 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         JsonObject lights = object(p, "lights");
         if (lights != null) {
             String hazard = nested(lights, "hazard", "status");
-            updateState(CHANNEL_STATUS_HAZARD, hazard == null ? UnDefType.UNDEF : OnOffType.from("on".equalsIgnoreCase(hazard)));
+            State hazardState = hazard == null ? UnDefType.UNDEF : OnOffType.from("on".equalsIgnoreCase(hazard));
+            updateState(CHANNEL_STATUS_HAZARD, hazardState);
+            updateState(CHANNEL_CONTROL_HAZARD, hazardState);
         }
     }
 
     private void updateClimate(JsonObject resp) {
         String status = string(payload(resp), "status");
         updateState(CHANNEL_CLIMATE_STATUS, status == null ? UnDefType.UNDEF : new StringType(status));
+        // the climate command channel mirrors the car: ON while starting or running
+        updateState(CHANNEL_CONTROL_CLIMATE, status == null ? UnDefType.UNDEF
+                : OnOffType.from(!"stopped".equalsIgnoreCase(status) && !"off".equalsIgnoreCase(status)));
+    }
+
+    /** One-shot command channels rest at OFF so their Switch items never show NULL. */
+    private void restOneShotChannels() {
+        for (String ch : new String[] { CHANNEL_CONTROL_REFRESH, CHANNEL_CONTROL_HORN, CHANNEL_CONTROL_FIND,
+                CHANNEL_CONTROL_CHARGE_NOW }) {
+            updateState(ch, OnOffType.OFF);
+        }
     }
 
     /** The car's saved climate settings become the initial setpoints of the climate channels. */

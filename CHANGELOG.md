@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1 (unreleased)
+
+Command channels mirror the car: `control#lock` follows the door lock state,
+`control#hazardLights` the hazard lights, `control#climate` the climate status; the
+one-shot channels (refresh, horn, find, charge now) rest at OFF instead of NULL.
+`control#lastWake` is also set by remote commands.
+
 ## 1.1.0 — 2026-09-21
 
 Remote commands: lock/unlock, hazard lights, horn, find vehicle, climate
