@@ -469,6 +469,10 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             updateState(CHANNEL_CONTROL_LOCK, anyLockKnown ? OnOffType.from(allLocked) : UnDefType.UNDEF);
             updateState(CHANNEL_STATUS_DOOR_OPEN, anyOpen ? OpenClosedType.OPEN : OpenClosedType.CLOSED);
             updateState(CHANNEL_STATUS_TRUNK_OPEN, openClosed(nested(object(doors, "rearBack"), "openStatus", "status")));
+            String trunkLock = nested(object(doors, "rearBack"), "lockStatus", "status");
+            if (getThing().getChannel(CHANNEL_CONTROL_TRUNK_LOCK) != null) {
+                updateState(CHANNEL_CONTROL_TRUNK_LOCK, trunkLock == null ? UnDefType.UNDEF : OnOffType.from("locked".equalsIgnoreCase(trunkLock)));
+            }
             updateState(CHANNEL_STATUS_HOOD_OPEN, openClosed(nested(object(doors, "hood"), "openStatus", "status")));
         }
 
@@ -529,8 +533,11 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
     /** One-shot command channels rest at OFF so their Switch items never show NULL. */
     private void restOneShotChannels() {
         for (String ch : new String[] { CHANNEL_CONTROL_REFRESH, CHANNEL_CONTROL_HORN, CHANNEL_CONTROL_FIND,
-                CHANNEL_CONTROL_CHARGE_NOW }) {
-            updateState(ch, OnOffType.OFF);
+                CHANNEL_CONTROL_CHARGE_NOW, CHANNEL_CONTROL_BUZZER, CHANNEL_CONTROL_WINDOWS_OPEN,
+                CHANNEL_CONTROL_WINDOWS_CLOSE, CHANNEL_CONTROL_VENTILATION }) {
+            if (getThing().getChannel(ch) != null) {
+                updateState(ch, OnOffType.OFF);
+            }
         }
     }
 
@@ -728,6 +735,7 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             logger.info("Optional channels for {}: {}", shortVin(), added.isEmpty() ? "none added" : String.join(", ", added));
         }
         channelsProvisioned = true;
+        restOneShotChannels();
     }
 
     private static boolean flag(@Nullable JsonObject o, String key) {
