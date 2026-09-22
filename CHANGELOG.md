@@ -1,34 +1,33 @@
 # Changelog
 
-## 1.7.0 (unreleased)
+## 1.7.0 — 2026-09-22
 
-Trips carry their start and end positions (Location) and the full route as a
-compact point list with electric / highway / overspeed flags, for a map.
+Everything pytoyoda reads, and the whole app status page, in one release
+(1.3 to 1.7 were built and tested on one car in a week and are published
+together):
 
-## 1.6.0 (unreleased)
-
-Trips (newest trip, today's and this month's totals, trips in 30 days), service
-history, fuel level for hybrids and combustion cars, and a climate-status refresh
-after every climate command. Everything pytoyoda reads is now in the binding;
-the car's own charging schedule remains the one write not yet covered.
-
-## 1.5.0 (unreleased)
-
-Capability-driven command channels: trunk lock, buzzer, engine start/stop,
-headlights, windows open/close, ventilation, and the climate options (front and
-rear defrost, steering wheel, mirror and seat heaters) are created per car from
-its reported capabilities and sent with the climate start, saved in the car.
-
-## 1.4.0 (unreleased)
-
-Health: the warnings behind the warning count, in words (`health#warnings`,
-codes, worst severity, timestamp). First seen: "Tire Pressure Warning System"
-while the car sat on a lift with its wheels off.
-
-## 1.3.0 (unreleased)
-
-Per-door, per-window and per-light channels (groups `doors`, `windows`, `lights`),
-plus the rear seat reminder: the same detail the app's status page shows.
+- **Trips** (`trips` group): the newest trip with start, end, distance,
+  duration, average speed, fuel, electric distance, score, start and end
+  positions (Location), the full route as a compact point list with electric /
+  highway / overspeed flags for a map, and the trip id; today's and this
+  month's totals; trips in 30 days. Read hourly and after every parking.
+- **Service history** (`service` group): count, date, category, provider and
+  odometer of the last service. Read every six hours.
+- **Fuel level** (`telemetry#fuelLevel`) for hybrids and combustion cars.
+- **Doors, windows, lights** (groups `doors`, `windows`, `lights`): lock and
+  open state per door and the trunk, hood, per window, hazard / tail / head
+  lights, and the rear seat reminder: the same detail as the app's status page.
+- **Health** (`health` group): the warnings behind the app's warning count, in
+  words, with codes, worst severity and timestamp.
+- **Capability channels**: trunk lock, buzzer, engine start/stop, headlights,
+  windows open/close, ventilation and the climate options (front and rear
+  defrost, steering wheel, mirror and seat heaters) are created per car from
+  the capabilities it reports; a car without a feature never shows the channel.
+  The climate options are sent with the climate start and saved in the car.
+- Climate status is re-read after every climate command; trunk lock mirrors
+  the trunk's lock state; one-shot commands rest at OFF.
+- Documentation: full README with every channel, `examples/` with things,
+  items (every channel), sitemap, four rules and the trip map page.
 
 ## 1.2.0 — 2026-09-21
 

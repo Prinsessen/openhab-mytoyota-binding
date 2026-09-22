@@ -1,0 +1,54 @@
+// A page for the car: the daily numbers first, commands that show the state on the same row,
+// the climate options as On/Off buttons, and the trip map as a webview (examples/trip-map.html
+// copied to openHAB's html folder).
+sitemap car label="Car" {
+    Frame label="Today" {
+        Text item=Car_SoC
+        Text item=Car_Battery_At
+        Text item=Car_Range
+        Text item=Car_Charging_Status
+        Text item=Car_Locked
+        Text item=Car_Says
+        Text item=Car_Warnings visibility=[Car_Warnings!="none"]
+    }
+    Frame label="Quick actions (confirmed by the rows above 45 s later)" {
+        Switch item=Car_Lock label="Doors [%s]" mappings=[ON="Lock", OFF="Unlock"]
+        Switch item=Car_Refresh mappings=[ON="Ask the car now"]
+        Switch item=Car_Charge_Now mappings=[ON="Charge now"]
+        Text item=Car_LastCmd
+    }
+    Frame label="Climate" {
+        Switch item=Car_Climate label="Climate [%s]" mappings=[ON="Start", OFF="Stop"]
+        Setpoint item=Car_Climate_Temp minValue=16 maxValue=30 step=0.5
+        Setpoint item=Car_Climate_Duration minValue=5 maxValue=60 step=5
+        Switch item=Car_Defrost_Front label="Defrost front [%s]" mappings=[ON="On", OFF="Off"]
+        Switch item=Car_Defrost_Rear label="Defrost rear [%s]" mappings=[ON="On", OFF="Off"]
+        Switch item=Car_Steering_Heat label="Steering wheel heater [%s]" mappings=[ON="On", OFF="Off"]
+        Switch item=Car_Seat_Driver label="Seat heater driver [%s]" mappings=[ON="On", OFF="Off"]
+        Switch item=Car_Seat_Passenger label="Seat heater passenger [%s]" mappings=[ON="On", OFF="Off"]
+    }
+    Frame label="Doors" {
+        Switch item=Car_Trunk_Lock label="Trunk [%s]" mappings=[ON="Lock", OFF="Unlock"]
+        Text item=Car_Any_Door_Open
+        Text item=Car_Any_Window_Open
+        Text item=Car_Hood_Open
+        Text item=Car_Rear_Seat
+    }
+    Frame label="Trips" {
+        Text item=Car_Trips_30d
+        Text item=Car_Trip_Distance visibility=[Car_Trips_30d>0]
+        Text item=Car_Trip_Start visibility=[Car_Trips_30d>0]
+        Text item=Car_Trip_Score visibility=[Car_Trips_30d>0]
+        Text item=Car_Trips_Month visibility=[Car_Trips_30d>0]
+        Webview url="/static/trip-map.html" height=18
+    }
+    Frame label="Position" {
+        Mapview item=Car_Position height=8
+        Text item=Car_Position_At
+    }
+    Frame label="Messages" {
+        Text item=Car_Says_At
+        Text item=Car_Unread
+        Text item=Car_Recent
+    }
+}

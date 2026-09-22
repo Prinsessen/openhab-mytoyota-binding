@@ -1,0 +1,126 @@
+// MyToyota binding: every channel of one vehicle, generic names. Delete what you do not need.
+// unit="…" keeps quantity states in the unit you expect; autoupdate="false" on command switches
+// makes them show what the car reports rather than what was clicked.
+Group gCar "Car" <car>
+
+// Battery and charging
+Number:Dimensionless Car_SoC              "Battery [%.0f %%]"                { channel="mytoyota:vehicle:home:car:battery#level", unit="%" }
+Number:Length        Car_Range            "Range [%.0f km]"                  { channel="mytoyota:vehicle:home:car:battery#range", unit="km" }
+Number:Length        Car_Range_AC         "Range with A/C [%.0f km]"         { channel="mytoyota:vehicle:home:car:battery#rangeWithAc", unit="km" }
+String               Car_Charging_Status  "Charging status [%s]"             { channel="mytoyota:vehicle:home:car:battery#chargingStatus" }
+Switch               Car_Charging         "Charging [%s]"                    { channel="mytoyota:vehicle:home:car:battery#charging" }
+Number:Time          Car_Remaining_Charge "Remaining charge time [%.0f min]" { channel="mytoyota:vehicle:home:car:battery#remainingChargeTime", unit="min" }
+DateTime             Car_Battery_At       "Battery reported [%1$td/%1$tm %1$tR]" { channel="mytoyota:vehicle:home:car:battery#lastUpdate" }
+
+// Telemetry
+Number:Length        Car_Odometer         "Odometer [%.0f km]"               { channel="mytoyota:vehicle:home:car:telemetry#odometer", unit="km" }
+Number:Length        Car_DTE              "Distance to empty [%.0f km]"      { channel="mytoyota:vehicle:home:car:telemetry#distanceToEmpty", unit="km" }
+Number:Dimensionless Car_Fuel             "Fuel [%.0f %%]"                   { channel="mytoyota:vehicle:home:car:telemetry#fuelLevel", unit="%" }   // hybrids and petrol cars only
+
+// Trips
+DateTime             Car_Trip_Start       "Latest trip start [%1$td/%1$tm %1$tR]" { channel="mytoyota:vehicle:home:car:trips#latestStart" }
+DateTime             Car_Trip_End         "Latest trip end [%1$td/%1$tm %1$tR]"   { channel="mytoyota:vehicle:home:car:trips#latestEnd" }
+Number:Length        Car_Trip_Distance    "Latest trip [%.1f km]"            { channel="mytoyota:vehicle:home:car:trips#latestDistance", unit="km" }
+Number:Time          Car_Trip_Duration    "Latest trip duration [%.0f min]"  { channel="mytoyota:vehicle:home:car:trips#latestDuration", unit="min" }
+Number:Speed         Car_Trip_Speed       "Latest trip average [%.0f km/h]"  { channel="mytoyota:vehicle:home:car:trips#latestAverageSpeed", unit="km/h" }
+Number:Volume        Car_Trip_Fuel        "Latest trip fuel [%.2f l]"        { channel="mytoyota:vehicle:home:car:trips#latestFuel", unit="l" }
+Number:Length        Car_Trip_EV          "Latest trip electric [%.1f km]"   { channel="mytoyota:vehicle:home:car:trips#latestEvDistance", unit="km" }
+Number               Car_Trip_Score       "Latest trip score [%d]"           { channel="mytoyota:vehicle:home:car:trips#latestScore" }
+Location             Car_Trip_From        "Latest trip from"                 { channel="mytoyota:vehicle:home:car:trips#latestStartPosition" }
+Location             Car_Trip_To          "Latest trip to"                   { channel="mytoyota:vehicle:home:car:trips#latestEndPosition" }
+String               Car_Trip_Route       "Latest trip route"                { channel="mytoyota:vehicle:home:car:trips#latestRoute" }
+String               Car_Trip_Id          "Latest trip id [%s]"              { channel="mytoyota:vehicle:home:car:trips#latestId" }
+Number:Length        Car_Trips_Today      "Today [%.1f km]"                  { channel="mytoyota:vehicle:home:car:trips#todayDistance", unit="km" }
+Number:Length        Car_Trips_Month      "This month [%.0f km]"             { channel="mytoyota:vehicle:home:car:trips#monthDistance", unit="km" }
+Number:Time          Car_Trips_Month_Time "This month driving [%.0f min]"    { channel="mytoyota:vehicle:home:car:trips#monthDuration", unit="min" }
+Number:Volume        Car_Trips_Month_Fuel "This month fuel [%.1f l]"         { channel="mytoyota:vehicle:home:car:trips#monthFuel", unit="l" }
+Number               Car_Trips_30d        "Trips in 30 days [%d]"            { channel="mytoyota:vehicle:home:car:trips#count30Days" }
+DateTime             Car_Trips_Read       "Trips read [%1$td/%1$tm %1$tR]"   { channel="mytoyota:vehicle:home:car:trips#lastUpdate" }
+
+// Service history
+Number               Car_Service_Count    "Service records [%d]"             { channel="mytoyota:vehicle:home:car:service#count" }
+DateTime             Car_Service_Date     "Last service [%1$td/%1$tm/%1$tY]" { channel="mytoyota:vehicle:home:car:service#lastDate" }
+String               Car_Service_Last     "Last service [%s]"                { channel="mytoyota:vehicle:home:car:service#lastCategory" }
+String               Car_Service_Provider "Service provider [%s]"            { channel="mytoyota:vehicle:home:car:service#lastProvider" }
+Number:Length        Car_Service_Mileage  "Odometer at last service [%.0f km]" { channel="mytoyota:vehicle:home:car:service#lastMileage", unit="km" }
+
+// Location
+Location             Car_Position         "Parked at"                        { channel="mytoyota:vehicle:home:car:location#position" }
+String               Car_Position_Name    "Position label [%s]"              { channel="mytoyota:vehicle:home:car:location#name" }
+DateTime             Car_Position_At      "Position acquired [%1$td/%1$tm %1$tR]" { channel="mytoyota:vehicle:home:car:location#lastUpdate" }
+
+// Status summary
+Switch               Car_Locked           "Locked [%s]"                      { channel="mytoyota:vehicle:home:car:status#locked" }
+Contact              Car_Any_Door_Open    "Any door open [%s]"               { channel="mytoyota:vehicle:home:car:status#anyDoorOpen" }
+Contact              Car_Any_Window_Open  "Any window open [%s]"             { channel="mytoyota:vehicle:home:car:status#anyWindowOpen" }
+Contact              Car_Trunk_Open       "Trunk open [%s]"                  { channel="mytoyota:vehicle:home:car:status#trunkOpen" }
+Contact              Car_Hood_Open        "Hood open [%s]"                   { channel="mytoyota:vehicle:home:car:status#hoodOpen" }
+String               Car_Overall          "Status [%s]"                      { channel="mytoyota:vehicle:home:car:status#overall" }
+Number               Car_Red_Marks        "Status marks in red [%d]"         { channel="mytoyota:vehicle:home:car:status#warnings" }
+DateTime             Car_Status_At        "Status reported [%1$td/%1$tm %1$tR]" { channel="mytoyota:vehicle:home:car:status#lastUpdate" }
+
+// Per door, window and light (the app's status page)
+Switch               Car_Door_Driver_Locked    "Driver door locked [%s]"     { channel="mytoyota:vehicle:home:car:doors#driverLocked" }
+Contact              Car_Door_Driver_Open      "Driver door open [%s]"       { channel="mytoyota:vehicle:home:car:doors#driverOpen" }
+Switch               Car_Door_Passenger_Locked "Passenger door locked [%s]"  { channel="mytoyota:vehicle:home:car:doors#passengerLocked" }
+Contact              Car_Door_Passenger_Open   "Passenger door open [%s]"    { channel="mytoyota:vehicle:home:car:doors#passengerOpen" }
+Switch               Car_Door_RearLeft_Locked  "Rear left locked [%s]"       { channel="mytoyota:vehicle:home:car:doors#rearLeftLocked" }
+Contact              Car_Door_RearLeft_Open    "Rear left open [%s]"         { channel="mytoyota:vehicle:home:car:doors#rearLeftOpen" }
+Switch               Car_Door_RearRight_Locked "Rear right locked [%s]"      { channel="mytoyota:vehicle:home:car:doors#rearRightLocked" }
+Contact              Car_Door_RearRight_Open   "Rear right open [%s]"        { channel="mytoyota:vehicle:home:car:doors#rearRightOpen" }
+Switch               Car_Door_Trunk_Locked     "Trunk locked [%s]"           { channel="mytoyota:vehicle:home:car:doors#rearBackLocked" }
+Contact              Car_Door_Trunk_Open       "Trunk open [%s]"             { channel="mytoyota:vehicle:home:car:doors#rearBackOpen" }
+Contact              Car_Door_Hood_Open        "Hood open [%s]"              { channel="mytoyota:vehicle:home:car:doors#hoodOpen" }
+String               Car_Rear_Seat             "Rear seat reminder [%s]"     { channel="mytoyota:vehicle:home:car:doors#rearSeatReminder" }
+String               Car_Window_Driver         "Driver window [%s]"          { channel="mytoyota:vehicle:home:car:windows#driver" }
+String               Car_Window_Passenger      "Passenger window [%s]"       { channel="mytoyota:vehicle:home:car:windows#passenger" }
+String               Car_Window_RearLeft       "Rear left window [%s]"       { channel="mytoyota:vehicle:home:car:windows#rearLeft" }
+String               Car_Window_RearRight      "Rear right window [%s]"      { channel="mytoyota:vehicle:home:car:windows#rearRight" }
+Switch               Car_Light_Hazard          "Hazard lights [%s]"          { channel="mytoyota:vehicle:home:car:lights#hazard" }
+Switch               Car_Light_Tail            "Tail lights [%s]"            { channel="mytoyota:vehicle:home:car:lights#tail" }
+Switch               Car_Light_Head            "Headlights [%s]"             { channel="mytoyota:vehicle:home:car:lights#head" }
+
+// Health
+String               Car_Warnings         "Warnings [%s]"                    { channel="mytoyota:vehicle:home:car:health#warnings" }
+String               Car_Warning_Codes    "Warning codes [%s]"               { channel="mytoyota:vehicle:home:car:health#warningCodes" }
+Number               Car_Warning_Severity "Worst severity [%d]"              { channel="mytoyota:vehicle:home:car:health#severity" }
+DateTime             Car_Health_At        "Health reported [%1$td/%1$tm %1$tR]" { channel="mytoyota:vehicle:home:car:health#lastUpdate" }
+
+// Climate and notifications
+String               Car_Climate_Status   "Climate [%s]"                     { channel="mytoyota:vehicle:home:car:climate#status" }
+String               Car_Says             "Car says [%s]"                    { channel="mytoyota:vehicle:home:car:notifications#latest" }
+DateTime             Car_Says_At          "Message time [%1$td/%1$tm %1$tR]" { channel="mytoyota:vehicle:home:car:notifications#latestTime" }
+String               Car_Says_Category    "Message category [%s]"            { channel="mytoyota:vehicle:home:car:notifications#latestCategory" }
+Number               Car_Unread           "Unread messages [%d]"             { channel="mytoyota:vehicle:home:car:notifications#unread" }
+String               Car_Recent           "Recent messages [%s]"             { channel="mytoyota:vehicle:home:car:notifications#recent" }
+
+// Commands (always present)
+Switch               Car_Refresh          "Refresh from car"                 { channel="mytoyota:vehicle:home:car:control#refresh", autoupdate="false" }
+Switch               Car_Lock             "Doors"                            { channel="mytoyota:vehicle:home:car:control#lock", autoupdate="false" }
+Switch               Car_Hazard           "Hazard lights"                    { channel="mytoyota:vehicle:home:car:control#hazardLights", autoupdate="false" }
+Switch               Car_Horn             "Horn"                             { channel="mytoyota:vehicle:home:car:control#horn", autoupdate="false" }
+Switch               Car_Find             "Find vehicle"                     { channel="mytoyota:vehicle:home:car:control#findVehicle", autoupdate="false" }
+Switch               Car_Climate          "Climate"                          { channel="mytoyota:vehicle:home:car:control#climate", autoupdate="false" }
+Number:Temperature   Car_Climate_Temp     "Climate temperature [%.1f °C]"    { channel="mytoyota:vehicle:home:car:control#climateTemperature", unit="°C" }
+Number:Time          Car_Climate_Duration "Climate duration [%.0f min]"      { channel="mytoyota:vehicle:home:car:control#climateDuration", unit="min" }
+Switch               Car_Charge_Now       "Charge now"                       { channel="mytoyota:vehicle:home:car:control#chargeNow", autoupdate="false" }
+String               Car_LastCmd          "Last command [%s]"                { channel="mytoyota:vehicle:home:car:control#lastCommandResult" }
+DateTime             Car_LastWake         "Last wake [%1$td/%1$tm %1$tR]"    { channel="mytoyota:vehicle:home:car:control#lastWake" }
+DateTime             Car_LastPoll         "Last poll [%1$td/%1$tm %1$tR]"    { channel="mytoyota:vehicle:home:car:control#lastPoll" }
+
+// Commands created only when the car reports the capability (link the ones your thing has)
+Switch               Car_Trunk_Lock       "Trunk"                            { channel="mytoyota:vehicle:home:car:control#trunkLock", autoupdate="false" }
+Switch               Car_Buzzer           "Warning buzzer"                   { channel="mytoyota:vehicle:home:car:control#buzzer", autoupdate="false" }
+Switch               Car_Engine           "Engine"                           { channel="mytoyota:vehicle:home:car:control#engine", autoupdate="false" }
+Switch               Car_Headlights       "Headlights"                       { channel="mytoyota:vehicle:home:car:control#headlights", autoupdate="false" }
+Switch               Car_Defrost_Front    "Defrost front window"             { channel="mytoyota:vehicle:home:car:control#defrostFront" }
+Switch               Car_Defrost_Rear     "Defrost rear window"              { channel="mytoyota:vehicle:home:car:control#defrostRear" }
+Switch               Car_Steering_Heat    "Steering wheel heater"            { channel="mytoyota:vehicle:home:car:control#steeringHeater" }
+Switch               Car_Seat_Driver      "Seat heater driver"               { channel="mytoyota:vehicle:home:car:control#seatHeaterDriver" }
+Switch               Car_Seat_Passenger   "Seat heater passenger"            { channel="mytoyota:vehicle:home:car:control#seatHeaterPassenger" }
+Switch               Car_Seat_RearLeft    "Seat heater rear left"            { channel="mytoyota:vehicle:home:car:control#seatHeaterRearLeft" }
+Switch               Car_Seat_RearRight   "Seat heater rear right"           { channel="mytoyota:vehicle:home:car:control#seatHeaterRearRight" }
+Switch               Car_Mirror_Heat      "Mirror heater"                    { channel="mytoyota:vehicle:home:car:control#mirrorHeater" }
+Switch               Car_Windows_Open     "Open windows"                     { channel="mytoyota:vehicle:home:car:control#windowsOpen", autoupdate="false" }
+Switch               Car_Windows_Close    "Close windows"                    { channel="mytoyota:vehicle:home:car:control#windowsClose", autoupdate="false" }
+Switch               Car_Ventilation      "Ventilation"                      { channel="mytoyota:vehicle:home:car:control#ventilation", autoupdate="false" }

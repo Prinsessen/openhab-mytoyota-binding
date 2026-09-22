@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Latest trip</title>
+<!-- The newest trip from the MyToyota cloud, drawn from the openHAB items the
+     mytoyota binding fills: Car_Trip_Route ("lat,lon,flags;..." with e = electric,
+     h = highway, o = over the limit), start/end positions and the numbers of the trip.
+     Copy to openHAB's html folder and embed with Webview url="/static/trip-map.html".
+     Rename the Car_* items below if yours are called something else. -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; background: #111; color: #ddd; }
+  #map { position: absolute; top: 0; bottom: 34px; left: 0; right: 0; touch-action: none; }
+  #bar { position: absolute; bottom: 0; left: 0; right: 0; height: 34px; line-height: 34px; padding: 0 10px;
+         font-size: 13px; background: #1b1b1b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .leaflet-control-zoom a { width: 44px !important; height: 44px !important; line-height: 44px !important; font-size: 26px !important; }
+  .k { color: #9ad; margin-right: 4px; } .ev { color: #7f7; } .hw { color: #7bf; } .os { color: #f77; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="bar">Loading the latest trip…</div>
+<script>
+const REST = '/rest/items/';
+const map = L.map('map', { zoomControl: true, attributionControl: false, scrollWheelZoom: true, touchZoom: true, tap: true });
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+let layers = L.layerGroup().addTo(map);
+
+async function state(name) {
+  const r = await fetch(REST + name + '/state', { cache: 'no-store' });
+  return r.ok ? (await r.text()).trim() : 'NULL';
+}
+function usable(s) { return s && s !== 'NULL' && s !== 'UNDEF'; }
+
+async function draw() {
+  const [route, start, end, dist, dur, speed, startTs, endTs, score] = await Promise.all(
+    ['Car_Trip_Route', 'Car_Trip_From', 'Car_Trip_To', 'Car_Trip_Distance',
+     'Car_Trip_Duration', 'Car_Trip_Speed', 'Car_Trip_Start', 'Car_Trip_End', 'Car_Trip_Score'].map(state));
+  layers.clearLayers();
+  const bar = document.getElementById('bar');
+  if (!usable(route)) {
+    bar.textContent = 'No trip in the cloud yet. The first drive fills this map.';
+    map.setView([55.0, 10.0], 11);
+    return;
+  }
+  // segments coloured by how they were driven: electric (green), highway (blue), over the limit (red)
+  const pts = route.split(';').map(p => { const [la, lo, f] = p.split(','); return { ll: [parseFloat(la), parseFloat(lo)], f: f || '' }; })
+                   .filter(p => isFinite(p.ll[0]) && isFinite(p.ll[1]));
+  let seg = [], segFlags = '';
+  const colour = f => f.includes('o') ? '#f55' : f.includes('h') ? '#5af' : f.includes('e') ? '#5f5' : '#ddd';
+  const flush = () => { if (seg.length > 1) L.polyline(seg, { color: colour(segFlags), weight: 4, opacity: 0.9 }).addTo(layers); };
+  for (const p of pts) {
+    if (seg.length && p.f !== segFlags) { seg.push(p.ll); flush(); seg = [p.ll]; }
+    else seg.push(p.ll);
+    segFlags = p.f;
+  }
+  flush();
+  const s = usable(start) ? start.split(',').map(Number) : pts[0].ll;
+  const e = usable(end) ? end.split(',').map(Number) : pts[pts.length - 1].ll;
+  L.circleMarker(s, { radius: 6, color: '#fff', fillColor: '#5f5', fillOpacity: 1 }).bindTooltip('Start').addTo(layers);
+  L.circleMarker(e, { radius: 6, color: '#fff', fillColor: '#f55', fillOpacity: 1 }).bindTooltip('End').addTo(layers);
+  map.fitBounds(L.latLngBounds(pts.map(p => p.ll)).pad(0.1));
+  const fmt = t => usable(t) ? new Date(t).toLocaleString('da-DK', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '?';
+  const ev = pts.filter(p => p.f.includes('e')).length, pct = pts.length ? Math.round(100 * ev / pts.length) : 0;
+  bar.innerHTML = `<span class="k">Latest trip</span>${fmt(startTs)} → ${fmt(endTs)} · ${usable(dist) ? dist : '?'} · ${usable(dur) ? dur : '?'} · avg ${usable(speed) ? speed : '?'}` +
+    ` · <span class="ev">■ electric ${pct} %</span> <span class="hw">■ highway</span> <span class="os">■ over limit</span>` + (usable(score) ? ` · score ${score}` : '');
+}
+draw();
+setInterval(draw, 5 * 60 * 1000);
+</script>
+</body>
+</html>

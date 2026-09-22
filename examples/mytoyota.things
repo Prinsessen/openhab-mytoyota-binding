@@ -1,0 +1,5 @@
+// MyToyota binding: one bridge per MyToyota account, one vehicle per car.
+// Get the VIN from discovery (Inbox) or from the car's registration papers.
+Bridge mytoyota:account:home "MyToyota account" [ username="me@example.com", password="secret", brand="T", pollInterval=5, wakeWhileCharging=10 ] {
+    Thing vehicle car "My car" [ vin="JTMXXXXXXXXXXXXXX" ]
+}
