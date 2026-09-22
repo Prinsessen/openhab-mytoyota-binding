@@ -59,6 +59,8 @@
 		<channel-groups>
 			<channel-group id="battery" typeId="battery"/>
 			<channel-group id="telemetry" typeId="telemetry"/>
+			<channel-group id="trips" typeId="trips"/>
+			<channel-group id="service" typeId="service"/>
 			<channel-group id="location" typeId="location"/>
 			<channel-group id="status" typeId="status"/>
 			<channel-group id="doors" typeId="doors"/>
@@ -110,9 +112,43 @@
 			<channel id="distanceToEmpty" typeId="range">
 				<label>Distance to Empty</label>
 			</channel>
+			<channel id="fuelLevel" typeId="fuel-level"/>
 			<channel id="lastUpdate" typeId="timestamp">
 				<label>Telemetry Reported</label>
 			</channel>
+		</channels>
+	</channel-group-type>
+
+	<channel-group-type id="trips">
+		<label>Trips</label>
+		<description>From the cloud's trip history: the newest trip, today's and this month's totals. A trip appears when
+			the car parks; the binding reads the history then and once an hour.</description>
+		<channels>
+			<channel id="latestStart" typeId="timestamp"><label>Latest Trip Start</label></channel>
+			<channel id="latestEnd" typeId="timestamp"><label>Latest Trip End</label></channel>
+			<channel id="latestDistance" typeId="trip-distance"><label>Latest Trip Distance</label></channel>
+			<channel id="latestDuration" typeId="trip-duration"><label>Latest Trip Duration</label></channel>
+			<channel id="latestAverageSpeed" typeId="trip-speed"/>
+			<channel id="latestFuel" typeId="trip-fuel"><label>Latest Trip Fuel</label></channel>
+			<channel id="latestEvDistance" typeId="trip-distance"><label>Latest Trip EV Distance</label></channel>
+			<channel id="latestScore" typeId="trip-score"/>
+			<channel id="todayDistance" typeId="trip-distance"><label>Today Distance</label></channel>
+			<channel id="monthDistance" typeId="trip-distance"><label>This Month Distance</label></channel>
+			<channel id="monthDuration" typeId="trip-duration"><label>This Month Driving Time</label></channel>
+			<channel id="monthFuel" typeId="trip-fuel"><label>This Month Fuel</label></channel>
+			<channel id="count30Days" typeId="trip-count"/>
+			<channel id="lastUpdate" typeId="timestamp"><label>Trips Read</label></channel>
+		</channels>
+	</channel-group-type>
+
+	<channel-group-type id="service">
+		<label>Service History</label>
+		<channels>
+			<channel id="count" typeId="service-count"/>
+			<channel id="lastDate" typeId="timestamp"><label>Last Service Date</label></channel>
+			<channel id="lastCategory" typeId="service-text"><label>Last Service</label></channel>
+			<channel id="lastProvider" typeId="service-text"><label>Last Service Provider</label></channel>
+			<channel id="lastMileage" typeId="odometer"><label>Odometer At Last Service</label></channel>
 		</channels>
 	</channel-group-type>
 
@@ -515,6 +551,63 @@
 		<description>An on/off option sent with the next remote climate start and saved in the car (the app's
 			"climate schedule"): front defrost, rear defogger, steering wheel heater, mirror heater, seat heaters.
 			Created only for the options the car reports.</description>
+	</channel-type>
+
+	<channel-type id="fuel-level">
+		<item-type>Number:Dimensionless</item-type>
+		<label>Fuel Level</label>
+		<description>Hybrids and combustion cars; UNDEF on a battery EV.</description>
+		<state readOnly="true" pattern="%.0f %%"/>
+	</channel-type>
+
+	<channel-type id="trip-distance">
+		<item-type>Number:Length</item-type>
+		<label>Distance</label>
+		<state readOnly="true" pattern="%.1f %unit%"/>
+	</channel-type>
+
+	<channel-type id="trip-duration">
+		<item-type>Number:Time</item-type>
+		<label>Duration</label>
+		<state readOnly="true" pattern="%.0f min"/>
+	</channel-type>
+
+	<channel-type id="trip-speed">
+		<item-type>Number:Speed</item-type>
+		<label>Latest Trip Average Speed</label>
+		<state readOnly="true" pattern="%.0f %unit%"/>
+	</channel-type>
+
+	<channel-type id="trip-fuel">
+		<item-type>Number:Volume</item-type>
+		<label>Fuel</label>
+		<description>Fuel used, litres; UNDEF on a battery EV.</description>
+		<state readOnly="true" pattern="%.2f %unit%"/>
+	</channel-type>
+
+	<channel-type id="trip-score">
+		<item-type>Number</item-type>
+		<label>Latest Trip Score</label>
+		<description>Toyota's driving score for the trip, 0 to 100.</description>
+		<state readOnly="true" pattern="%d"/>
+	</channel-type>
+
+	<channel-type id="trip-count">
+		<item-type>Number</item-type>
+		<label>Trips In 30 Days</label>
+		<state readOnly="true" pattern="%d"/>
+	</channel-type>
+
+	<channel-type id="service-count">
+		<item-type>Number</item-type>
+		<label>Service Records</label>
+		<state readOnly="true" pattern="%d"/>
+	</channel-type>
+
+	<channel-type id="service-text" advanced="true">
+		<item-type>String</item-type>
+		<label>Service</label>
+		<state readOnly="true"/>
 	</channel-type>
 
 	<channel-type id="timestamp" advanced="true">

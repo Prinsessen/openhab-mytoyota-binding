@@ -77,6 +77,11 @@ public class MyToyotaApiClient {
     public static final String ENDPOINT_HEALTH = "/v1/vehiclehealth/status";
     public static final String ENDPOINT_CLIMATE_STATUS = "/v1/vehicle/climate-status";
     public static final String ENDPOINT_CLIMATE_SETTINGS = "/v1/vehicle/climate-settings";
+    /** Trips: from/to as yyyy-MM-dd; summary=true adds month and day summaries; newest first */
+    public static final String ENDPOINT_TRIPS = "/v1/trips?from=%s&to=%s&route=false&summary=true&limit=%d&offset=0";
+    public static final String ENDPOINT_SERVICE_HISTORY = "/v1/servicehistory/vehicle/summary";
+    /** POST, no body: asks the car to report its climate state, like the status wake */
+    public static final String ENDPOINT_CLIMATE_REFRESH = "/v1/remote/refresh-climate-status";
     /** The messages the app shows: payload[0].notifications[], newest first */
     public static final String ENDPOINT_NOTIFICATIONS = "/v2/notification/history";
     /** POST {"command":"door-lock"|"door-unlock"|"hazard-on"|"hazard-off"|"sound-horn"|"find-vehicle"|...} */

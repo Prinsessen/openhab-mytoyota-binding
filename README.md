@@ -52,7 +52,15 @@ reports (door lock, climate, ...).
 | `battery#lastUpdate` | DateTime | when the car reported the battery values |
 | `telemetry#odometer` | Number:Length | |
 | `telemetry#distanceToEmpty` | Number:Length | |
+| `telemetry#fuelLevel` | Number:Dimensionless | fuel, hybrids and combustion cars; UNDEF on a battery EV |
 | `telemetry#lastUpdate` | DateTime | |
+| `trips#latestStart` / `latestEnd` | DateTime | the newest trip |
+| `trips#latestDistance`, `latestDuration`, `latestAverageSpeed`, `latestFuel`, `latestEvDistance`, `latestScore` | Number | the newest trip: km, minutes, km/h, litres (UNDEF on an EV), km driven electrically, Toyota's driving score |
+| `trips#todayDistance`, `monthDistance`, `monthDuration`, `monthFuel` | Number | today's and this month's totals from the cloud's summaries |
+| `trips#count30Days` | Number | trips in the last 30 days |
+| `trips#lastUpdate` | DateTime | when the history was read (on parking and hourly) |
+| `service#count` | Number | service records the cloud holds |
+| `service#lastDate`, `lastCategory`, `lastProvider`, `lastMileage` | | the newest service record |
 | `location#position` | Location | last parked position; only updated when parked |
 | `location#name` | String | the cloud's name for it, e.g. "Last Parked" |
 | `location#lastUpdate` | DateTime | when the position was acquired |
@@ -118,6 +126,16 @@ Location             Car_Position "Position"            { channel="mytoyota:vehi
 Switch               Car_Locked   "Locked [%s]"         { channel="mytoyota:vehicle:home:bz4x:status#locked" }
 Switch               Car_Refresh  "Refresh from car"    { channel="mytoyota:vehicle:home:bz4x:control#refresh" }
 ```
+
+## Trips and service history
+
+The cloud keeps trips (12 months) with distance, duration, average speed, fuel,
+electric distance and a driving score, plus month and day summaries. The
+binding reads them when the car parks (its position timestamp moves) and once
+an hour, and shows the newest trip and today's and this month's totals. Service
+history lists the workshop records the dealer has entered. Both are built from
+pytoyoda's data model; the trip fields were not yet seen on the test car (a
+brand-new bZ4X with no trips), so report anything that looks wrong.
 
 ## Notifications
 

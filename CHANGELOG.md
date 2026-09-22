@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.0 (unreleased)
+
+Trips (newest trip, today's and this month's totals, trips in 30 days), service
+history, fuel level for hybrids and combustion cars, and a climate-status refresh
+after every climate command. Everything pytoyoda reads is now in the binding;
+the car's own charging schedule remains the one write not yet covered.
+
 ## 1.5.0 (unreleased)
 
 Capability-driven command channels: trunk lock, buzzer, engine start/stop,

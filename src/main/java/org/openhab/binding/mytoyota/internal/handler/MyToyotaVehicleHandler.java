@@ -90,8 +90,19 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
     private int climateDuration = 20;
     private boolean climateSeeded;
     private boolean channelsProvisioned;
+    private Instant lastTripsFetch = Instant.EPOCH;
+    private Instant lastServiceFetch = Instant.EPOCH;
+    private String lastLocationStamp = "";
+    private static final long TRIPS_INTERVAL_S = 3600;
+    private static final long SERVICE_INTERVAL_S = 6 * 3600;
     /** Climate options sent with a start: channel id -> "on"/"off" */
     private final Map<String, String> climateOptions = new HashMap<>();
+    /** Last states we posted, for the few places where a later step needs them */
+    private final Map<String, String> lastSeen = new HashMap<>();
+
+    private @Nullable String items(String channel) {
+        return lastSeen.get(channel);
+    }
 
     public MyToyotaVehicleHandler(Thing thing) {
         super(thing);
@@ -286,6 +297,13 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                 updateState(CHANNEL_CONTROL_LAST_RESULT, new StringType(result));
                 lastWake = Instant.now();
                 updateState(CHANNEL_CONTROL_LAST_WAKE, new DateTimeType(ZonedDateTime.now()));
+                if (label.startsWith("climate")) {
+                    try {
+                        client.post(MyToyotaApiClient.ENDPOINT_CLIMATE_REFRESH, vin);   // faster confirmation
+                    } catch (MyToyotaApiException e) {
+                        logger.debug("Climate refresh after {} failed: {}", label, e.getMessage());
+                    }
+                }
                 scheduleRepoll();
             } catch (MyToyotaApiException e) {
                 logger.warn("Remote command {} on {} failed: {}", label, shortVin(), e.getMessage());
@@ -347,6 +365,18 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             updateClimate(client.get(MyToyotaApiClient.ENDPOINT_CLIMATE_STATUS, vin));
             updateNotifications(client.get(MyToyotaApiClient.ENDPOINT_NOTIFICATIONS, vin));
             updateHealth(client.get(MyToyotaApiClient.ENDPOINT_HEALTH, vin));
+            // trips: hourly, and right after the car parks (its position timestamp moves)
+            String locStamp = String.valueOf(items(CHANNEL_LOCATION_TIMESTAMP));
+            boolean parkedSince = !locStamp.equals(lastLocationStamp);
+            if (parkedSince || Instant.now().isAfter(lastTripsFetch.plusSeconds(TRIPS_INTERVAL_S))) {
+                updateTrips(client);
+                lastTripsFetch = Instant.now();
+                lastLocationStamp = locStamp;
+            }
+            if (Instant.now().isAfter(lastServiceFetch.plusSeconds(SERVICE_INTERVAL_S))) {
+                updateService(client.get(MyToyotaApiClient.ENDPOINT_SERVICE_HISTORY, vin));
+                lastServiceFetch = Instant.now();
+            }
             if (!channelsProvisioned) {
                 provisionOptionalChannels(account);
             }
@@ -418,6 +448,7 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         JsonObject p = payload(resp);
         updateState(CHANNEL_TELEMETRY_ODOMETER, distance(p.get("odometer")));
         updateState(CHANNEL_TELEMETRY_DTE, distance(p.get("distanceToEmpty")));
+        updateState(CHANNEL_TELEMETRY_FUEL, quantity(p.get("fuelLevel"), Units.PERCENT));   // null on a battery EV
         updateState(CHANNEL_TELEMETRY_TIMESTAMP, dateTime(string(p, "timestamp")));
     }
 
@@ -434,7 +465,9 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                 : new PointType(new DecimalType(lat), new DecimalType(lon)));
         String name = string(loc, "displayName");
         updateState(CHANNEL_LOCATION_NAME, name == null ? UnDefType.UNDEF : new StringType(name));
-        updateState(CHANNEL_LOCATION_TIMESTAMP, dateTime(string(loc, "locationAcquisitionDatetime")));
+        State acquired = dateTime(string(loc, "locationAcquisitionDatetime"));
+        updateState(CHANNEL_LOCATION_TIMESTAMP, acquired);
+        lastSeen.put(CHANNEL_LOCATION_TIMESTAMP, acquired.toString());
     }
 
     private void updateVehicleStatus(JsonObject resp) {
@@ -673,6 +706,141 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         updateState(CHANNEL_HEALTH_WARNING_CODES, new StringType(codes.length() == 0 ? "" : codes.toString()));
         updateState(CHANNEL_HEALTH_SEVERITY, new DecimalType(worst));
         updateState(CHANNEL_HEALTH_TIMESTAMP, dateTime(string(p, "wnglastUpdTime")));
+    }
+
+    /**
+     * Trips from the cloud: the newest trip in detail, today's and this month's totals from the summary the
+     * same call returns. Units as Toyota sends them: metres, seconds, km/h, millilitres of fuel (null on an
+     * EV), plus the EV distance from the "hdc" block and the driving score. Built from pytoyoda's model;
+     * confirmed field by field on the first real trip.
+     */
+    private void updateTrips(MyToyotaApiClient client) {
+        ZonedDateTime now = ZonedDateTime.now();
+        String from = now.minusDays(30).toLocalDate().toString();
+        String to = now.toLocalDate().toString();
+        JsonObject resp;
+        try {
+            resp = client.get(String.format(MyToyotaApiClient.ENDPOINT_TRIPS, from, to, 1), vin);
+        } catch (MyToyotaApiException e) {
+            logger.debug("Trips for {} failed: {}", shortVin(), e.getMessage());
+            return;
+        }
+        JsonObject p = payload(resp);
+        JsonElement tripsEl = p.get("trips");
+        JsonObject meta = object(object(p, "_metadata"), "pagination");
+        Double total = meta == null ? null : number(meta.get("totalCount"));
+        updateState(CHANNEL_TRIPS_COUNT_30D, total == null ? UnDefType.UNDEF : new DecimalType(total.intValue()));
+        if (tripsEl != null && tripsEl.isJsonArray() && !tripsEl.getAsJsonArray().isEmpty()
+                && tripsEl.getAsJsonArray().get(0).isJsonObject()) {
+            JsonObject trip = tripsEl.getAsJsonArray().get(0).getAsJsonObject();
+            JsonObject sum = object(trip, "summary");
+            updateState(CHANNEL_TRIPS_LATEST_START, dateTime(string(sum, "startTs")));
+            updateState(CHANNEL_TRIPS_LATEST_END, dateTime(string(sum, "endTs")));
+            updateState(CHANNEL_TRIPS_LATEST_DISTANCE, metres(sum == null ? null : sum.get("length")));
+            updateState(CHANNEL_TRIPS_LATEST_DURATION, seconds(sum == null ? null : sum.get("duration")));
+            updateState(CHANNEL_TRIPS_LATEST_SPEED, quantity(sum == null ? null : sum.get("averageSpeed"), SIUnits.KILOMETRE_PER_HOUR));
+            updateState(CHANNEL_TRIPS_LATEST_FUEL, millilitres(sum == null ? null : sum.get("fuelConsumption")));
+            JsonObject hdc = object(trip, "hdc");
+            updateState(CHANNEL_TRIPS_LATEST_EV_DISTANCE, metres(hdc == null ? null : hdc.get("evDistance")));
+            JsonObject scores = object(trip, "scores");
+            Double score = scores == null ? null : number(scores.get("global"));
+            updateState(CHANNEL_TRIPS_LATEST_SCORE, score == null ? UnDefType.UNDEF : new DecimalType(score.intValue()));
+        }
+        // month and day summaries
+        JsonElement sumsEl = p.get("summary");
+        State monthDist = UnDefType.UNDEF, monthDur = UnDefType.UNDEF, monthFuel = UnDefType.UNDEF, todayDist = UnDefType.UNDEF;
+        if (sumsEl != null && sumsEl.isJsonArray()) {
+            for (JsonElement el : sumsEl.getAsJsonArray()) {
+                if (!el.isJsonObject()) {
+                    continue;
+                }
+                JsonObject m = el.getAsJsonObject();
+                Double y = number(m.get("year"));
+                Double mo = number(m.get("month"));
+                if (y == null || mo == null || y.intValue() != now.getYear() || mo.intValue() != now.getMonthValue()) {
+                    continue;
+                }
+                JsonObject ms = object(m, "summary");
+                monthDist = metres(ms == null ? null : ms.get("length"));
+                monthDur = seconds(ms == null ? null : ms.get("duration"));
+                monthFuel = millilitres(ms == null ? null : ms.get("fuelConsumption"));
+                JsonElement hist = m.get("histograms");
+                if (hist != null && hist.isJsonArray()) {
+                    for (JsonElement h : hist.getAsJsonArray()) {
+                        if (!h.isJsonObject()) {
+                            continue;
+                        }
+                        Double d = number(h.getAsJsonObject().get("day"));
+                        if (d != null && d.intValue() == now.getDayOfMonth()) {
+                            JsonObject ds = object(h.getAsJsonObject(), "summary");
+                            todayDist = metres(ds == null ? null : ds.get("length"));
+                        }
+                    }
+                }
+            }
+        }
+        updateState(CHANNEL_TRIPS_MONTH_DISTANCE, monthDist);
+        updateState(CHANNEL_TRIPS_MONTH_DURATION, monthDur);
+        updateState(CHANNEL_TRIPS_MONTH_FUEL, monthFuel);
+        updateState(CHANNEL_TRIPS_TODAY_DISTANCE, todayDist);
+        updateState(CHANNEL_TRIPS_TIMESTAMP, new DateTimeType(now));
+    }
+
+    /** Service history: how many records and the newest one. */
+    private void updateService(JsonObject resp) {
+        JsonElement list = payload(resp).get("serviceHistories");
+        if (list == null || !list.isJsonArray()) {
+            return;
+        }
+        JsonArray arr = list.getAsJsonArray();
+        updateState(CHANNEL_SERVICE_COUNT, new DecimalType(arr.size()));
+        JsonObject newest = null;
+        String newestDate = "";
+        for (JsonElement el : arr) {
+            if (!el.isJsonObject()) {
+                continue;
+            }
+            String d = string(el.getAsJsonObject(), "serviceDate");
+            if (d != null && d.compareTo(newestDate) > 0) {
+                newestDate = d;
+                newest = el.getAsJsonObject();
+            }
+        }
+        if (newest == null) {
+            updateState(CHANNEL_SERVICE_LAST_DATE, UnDefType.UNDEF);
+            updateState(CHANNEL_SERVICE_LAST_CATEGORY, new StringType("none"));
+            updateState(CHANNEL_SERVICE_LAST_PROVIDER, UnDefType.UNDEF);
+            updateState(CHANNEL_SERVICE_LAST_MILEAGE, UnDefType.UNDEF);
+            return;
+        }
+        try {
+            updateState(CHANNEL_SERVICE_LAST_DATE, new DateTimeType(java.time.LocalDate.parse(newestDate).atStartOfDay(ZoneId.systemDefault())));
+        } catch (DateTimeParseException e) {
+            updateState(CHANNEL_SERVICE_LAST_DATE, UnDefType.UNDEF);
+        }
+        String cat = string(newest, "serviceCategory");
+        updateState(CHANNEL_SERVICE_LAST_CATEGORY, cat == null ? UnDefType.UNDEF : new StringType(cat));
+        String prov = string(newest, "serviceProvider");
+        updateState(CHANNEL_SERVICE_LAST_PROVIDER, prov == null ? UnDefType.UNDEF : new StringType(prov));
+        Double km = number(newest.get("mileage"));
+        String unit = string(newest, "unit");
+        updateState(CHANNEL_SERVICE_LAST_MILEAGE, km == null ? UnDefType.UNDEF
+                : new QuantityType<>(km, "mi".equalsIgnoreCase(unit) ? ImperialUnits.MILE : MetricPrefix.KILO(SIUnits.METRE)));
+    }
+
+    private static State metres(@Nullable JsonElement e) {
+        Double v = number(e);
+        return v == null ? UnDefType.UNDEF : new QuantityType<>(v / 1000.0, MetricPrefix.KILO(SIUnits.METRE));
+    }
+
+    private static State seconds(@Nullable JsonElement e) {
+        Double v = number(e);
+        return v == null ? UnDefType.UNDEF : new QuantityType<>(v / 60.0, Units.MINUTE);
+    }
+
+    private static State millilitres(@Nullable JsonElement e) {
+        Double v = number(e);
+        return v == null ? UnDefType.UNDEF : new QuantityType<>(v / 1000.0, Units.LITRE);
     }
 
     private void putOption(JsonObject target, String apiKey, String channelId) {

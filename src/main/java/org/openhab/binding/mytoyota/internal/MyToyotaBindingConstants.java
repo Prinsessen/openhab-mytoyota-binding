@@ -42,6 +42,31 @@ public class MyToyotaBindingConstants {
     public static final String CHANNEL_TELEMETRY_DTE = "telemetry#distanceToEmpty";
     public static final String CHANNEL_TELEMETRY_TIMESTAMP = "telemetry#lastUpdate";
 
+    public static final String CHANNEL_TELEMETRY_FUEL = "telemetry#fuelLevel";
+
+    // trips (from the cloud's trip history; the car reports a trip when it parks)
+    public static final String CHANNEL_TRIPS_LATEST_START = "trips#latestStart";
+    public static final String CHANNEL_TRIPS_LATEST_END = "trips#latestEnd";
+    public static final String CHANNEL_TRIPS_LATEST_DISTANCE = "trips#latestDistance";
+    public static final String CHANNEL_TRIPS_LATEST_DURATION = "trips#latestDuration";
+    public static final String CHANNEL_TRIPS_LATEST_SPEED = "trips#latestAverageSpeed";
+    public static final String CHANNEL_TRIPS_LATEST_FUEL = "trips#latestFuel";
+    public static final String CHANNEL_TRIPS_LATEST_EV_DISTANCE = "trips#latestEvDistance";
+    public static final String CHANNEL_TRIPS_LATEST_SCORE = "trips#latestScore";
+    public static final String CHANNEL_TRIPS_TODAY_DISTANCE = "trips#todayDistance";
+    public static final String CHANNEL_TRIPS_MONTH_DISTANCE = "trips#monthDistance";
+    public static final String CHANNEL_TRIPS_MONTH_DURATION = "trips#monthDuration";
+    public static final String CHANNEL_TRIPS_MONTH_FUEL = "trips#monthFuel";
+    public static final String CHANNEL_TRIPS_COUNT_30D = "trips#count30Days";
+    public static final String CHANNEL_TRIPS_TIMESTAMP = "trips#lastUpdate";
+
+    // service history
+    public static final String CHANNEL_SERVICE_COUNT = "service#count";
+    public static final String CHANNEL_SERVICE_LAST_DATE = "service#lastDate";
+    public static final String CHANNEL_SERVICE_LAST_CATEGORY = "service#lastCategory";
+    public static final String CHANNEL_SERVICE_LAST_PROVIDER = "service#lastProvider";
+    public static final String CHANNEL_SERVICE_LAST_MILEAGE = "service#lastMileage";
+
     // location
     public static final String CHANNEL_LOCATION_POSITION = "location#position";
     public static final String CHANNEL_LOCATION_NAME = "location#name";
