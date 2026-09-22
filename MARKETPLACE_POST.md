@@ -154,6 +154,10 @@ car reports by itself now and then; `wakeWhileCharging` asks it for a fresh stat
 its 12 V battery — that is why the binding never wakes the car on every poll, and why you should not automate the
 refresh every minute.
 
+If `location#position` never changes and the app says *"Vehicle location is currently unavailable because you have
+privacy preferences turned on"*, the car's privacy setting is blocking position upload (dealers often leave it on).
+Turn location sharing on in the car's multimedia settings, then `control#refresh`. Trips depend on the same data.
+
 ---
 
 ## Tested on

@@ -352,9 +352,10 @@ Please report what works on your model, with the `capabilities` property.
 | bridge OFFLINE "429" or "5xx" | Toyota's gateway rate-limits; the binding retries with 2, 4, 8 s pauses and reports the last answer. Wait |
 | vehicle OFFLINE "VIN must have 17 characters" | check the VIN, or use discovery |
 | values never change | the car is asleep; look at `*#lastUpdate`. Use `control#refresh` once |
+| `location#position` never changes, `location#lastUpdate` stays old, and the app says "Vehicle location is currently unavailable because you have privacy preferences turned on" | the car's privacy setting stops position upload; the cloud keeps the last point it got. Turn location sharing on in the car (multimedia screen → Settings → Privacy), then `control#refresh`. Dealers often leave it on. Trips depend on the same data |
 | `status#warnings` is 5 but `health#warnings` says "none" | different things: 5 is the app's red marks (unlocked doors), health is tyre pressure etc. |
 | a command returns `000000` but nothing happens | the car refused; `notifications#latest` says why (key fob inside, doors open, battery too low for climate) |
-| `trips#*` stay UNDEF | no trip in the cloud yet, or the car has not parked since the last read |
+| `trips#*` stay UNDEF | no trip in the cloud yet, the car has not parked since the last read, or privacy is on in the car (see above) |
 | after a Toyota app update something stops | compare with pytoyoda and open an issue with the log at DEBUG for `org.openhab.binding.mytoyota` |
 
 Logs: `log:set DEBUG org.openhab.binding.mytoyota` in the console. Remote
