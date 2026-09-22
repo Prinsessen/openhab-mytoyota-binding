@@ -1,2 +1,3 @@
 target/
 *.jar
+RELEASE_NOTES_*.md
