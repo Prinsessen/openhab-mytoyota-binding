@@ -745,6 +745,11 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             JsonObject scores = object(trip, "scores");
             Double score = scores == null ? null : number(scores.get("global"));
             updateState(CHANNEL_TRIPS_LATEST_SCORE, score == null ? UnDefType.UNDEF : new DecimalType(score.intValue()));
+            updateState(CHANNEL_TRIPS_LATEST_START_POS, point(sum, "startLat", "startLon"));
+            updateState(CHANNEL_TRIPS_LATEST_END_POS, point(sum, "endLat", "endLon"));
+            String tripId = string(trip, "id");
+            updateState(CHANNEL_TRIPS_LATEST_ID, tripId == null ? UnDefType.UNDEF : new StringType(tripId));
+            updateState(CHANNEL_TRIPS_LATEST_ROUTE, route(trip.get("route")));
         }
         // month and day summaries
         JsonElement sumsEl = p.get("summary");
@@ -826,6 +831,52 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         String unit = string(newest, "unit");
         updateState(CHANNEL_SERVICE_LAST_MILEAGE, km == null ? UnDefType.UNDEF
                 : new QuantityType<>(km, "mi".equalsIgnoreCase(unit) ? ImperialUnits.MILE : MetricPrefix.KILO(SIUnits.METRE)));
+    }
+
+    private static State point(@Nullable JsonObject o, String latKey, String lonKey) {
+        if (o == null) {
+            return UnDefType.UNDEF;
+        }
+        Double lat = number(o.get(latKey));
+        Double lon = number(o.get(lonKey));
+        return lat == null || lon == null ? UnDefType.UNDEF : new PointType(new DecimalType(lat), new DecimalType(lon));
+    }
+
+    /**
+     * The trip's route as one compact string: "lat,lon,flags;lat,lon,flags;…" with five decimals (about a
+     * metre) and flags e = driven electrically, h = highway, o = over the speed limit. A 30 minute trip is
+     * a few hundred points, well within a String item. Consumers (a map) split on ";" and ",".
+     */
+    private static State route(@Nullable JsonElement e) {
+        if (e == null || !e.isJsonArray() || e.getAsJsonArray().isEmpty()) {
+            return UnDefType.UNDEF;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (JsonElement pEl : e.getAsJsonArray()) {
+            if (!pEl.isJsonObject()) {
+                continue;
+            }
+            JsonObject pt = pEl.getAsJsonObject();
+            Double lat = number(pt.get("lat"));
+            Double lon = number(pt.get("lon"));
+            if (lat == null || lon == null) {
+                continue;
+            }
+            if (sb.length() > 0) {
+                sb.append(';');
+            }
+            sb.append(String.format(java.util.Locale.ROOT, "%.5f,%.5f,", lat, lon));
+            if (flag(pt, "isEv")) {
+                sb.append('e');
+            }
+            if (flag(pt, "highway")) {
+                sb.append('h');
+            }
+            if (flag(pt, "overspeed")) {
+                sb.append('o');
+            }
+        }
+        return sb.length() == 0 ? UnDefType.UNDEF : new StringType(sb.toString());
     }
 
     private static State metres(@Nullable JsonElement e) {

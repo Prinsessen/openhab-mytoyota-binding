@@ -137,6 +137,10 @@
 			<channel id="monthDuration" typeId="trip-duration"><label>This Month Driving Time</label></channel>
 			<channel id="monthFuel" typeId="trip-fuel"><label>This Month Fuel</label></channel>
 			<channel id="count30Days" typeId="trip-count"/>
+			<channel id="latestStartPosition" typeId="trip-position"><label>Latest Trip Start Position</label></channel>
+			<channel id="latestEndPosition" typeId="trip-position"><label>Latest Trip End Position</label></channel>
+			<channel id="latestRoute" typeId="trip-route"/>
+			<channel id="latestId" typeId="trip-id"/>
 			<channel id="lastUpdate" typeId="timestamp"><label>Trips Read</label></channel>
 		</channels>
 	</channel-group-type>
@@ -607,6 +611,26 @@
 	<channel-type id="service-text" advanced="true">
 		<item-type>String</item-type>
 		<label>Service</label>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="trip-position">
+		<item-type>Location</item-type>
+		<label>Trip Position</label>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="trip-route" advanced="true">
+		<item-type>String</item-type>
+		<label>Latest Trip Route</label>
+		<description>The route as "lat,lon,flags;…" (five decimals; flags e = electric, h = highway, o = over the
+			limit). For a map; a few hundred points per trip. Do not persist it.</description>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="trip-id" advanced="true">
+		<item-type>String</item-type>
+		<label>Latest Trip Id</label>
 		<state readOnly="true"/>
 	</channel-type>
 

@@ -59,6 +59,10 @@ public class MyToyotaBindingConstants {
     public static final String CHANNEL_TRIPS_MONTH_FUEL = "trips#monthFuel";
     public static final String CHANNEL_TRIPS_COUNT_30D = "trips#count30Days";
     public static final String CHANNEL_TRIPS_TIMESTAMP = "trips#lastUpdate";
+    public static final String CHANNEL_TRIPS_LATEST_START_POS = "trips#latestStartPosition";
+    public static final String CHANNEL_TRIPS_LATEST_END_POS = "trips#latestEndPosition";
+    public static final String CHANNEL_TRIPS_LATEST_ROUTE = "trips#latestRoute";
+    public static final String CHANNEL_TRIPS_LATEST_ID = "trips#latestId";
 
     // service history
     public static final String CHANNEL_SERVICE_COUNT = "service#count";

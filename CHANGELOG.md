@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.0 (unreleased)
+
+Trips carry their start and end positions (Location) and the full route as a
+compact point list with electric / highway / overspeed flags, for a map.
+
 ## 1.6.0 (unreleased)
 
 Trips (newest trip, today's and this month's totals, trips in 30 days), service

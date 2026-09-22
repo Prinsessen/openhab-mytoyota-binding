@@ -58,6 +58,9 @@ reports (door lock, climate, ...).
 | `trips#latestDistance`, `latestDuration`, `latestAverageSpeed`, `latestFuel`, `latestEvDistance`, `latestScore` | Number | the newest trip: km, minutes, km/h, litres (UNDEF on an EV), km driven electrically, Toyota's driving score |
 | `trips#todayDistance`, `monthDistance`, `monthDuration`, `monthFuel` | Number | today's and this month's totals from the cloud's summaries |
 | `trips#count30Days` | Number | trips in the last 30 days |
+| `trips#latestStartPosition`, `latestEndPosition` | Location | where the newest trip began and ended |
+| `trips#latestRoute` | String | the newest trip's route, `lat,lon,flags;…` with flags e (electric), h (highway), o (over the limit); for a map, do not persist |
+| `trips#latestId` | String | the cloud's id of the newest trip |
 | `trips#lastUpdate` | DateTime | when the history was read (on parking and hourly) |
 | `service#count` | Number | service records the cloud holds |
 | `service#lastDate`, `lastCategory`, `lastProvider`, `lastMileage` | | the newest service record |
