@@ -89,6 +89,15 @@ reports (door lock, climate, ...).
 | `control#climateTemperature` | Number:Temperature | target for the next climate start (seeded from the car's saved setting) |
 | `control#climateDuration` | Number:Time | minutes the climate runs (seeded from the car) |
 | `control#chargeNow` | Switch | ON starts charging now while plugged in, overriding a schedule |
+| *capability channels* | | added per car from what it reports it can do (`capabilities` property); absent otherwise |
+| `control#trunkLock` | Switch | ON locks the trunk, OFF unlocks (`trunkLockUnlockCapable`) |
+| `control#buzzer` | Switch | ON sounds the warning buzzer once (`buzzerCapable`) |
+| `control#engine` | Switch | ON remote engine start, OFF stop (`remoteEngineStartStop`; hybrids only) |
+| `control#headlights` | Switch | ON / OFF (`lightsCapable`) |
+| `control#windowsOpen` / `control#windowsClose` | Switch | one-shot (`windowsOpenCapable` / `windowsCloseCapable`) |
+| `control#ventilation` | Switch | one-shot cabin ventilation (`ventilatorCapable`) |
+| `control#defrostFront`, `control#defrostRear`, `control#steeringHeater`, `control#mirrorHeater` | Switch | climate options sent with the next climate start and saved in the car, seeded from its saved settings |
+| `control#seatHeaterDriver`, `control#seatHeaterPassenger`, `control#seatHeaterRearLeft`, `control#seatHeaterRearRight` | Switch | seat heaters, same rule |
 | `control#lastCommandResult` | String | last command and the cloud's return code, e.g. `door-lock: 000000 (Success)` |
 | `control#lastWake` | DateTime | last wake request sent |
 | `control#lastPoll` | DateTime | last successful poll |
@@ -120,6 +129,15 @@ category, the unread count and the five newest as text. The car's name or VIN
 prefix is stripped from the text. The binding cannot mark messages as read.
 
 ## Remote commands
+
+Every command pytoyoda knows is in the binding, but a car only gets the
+channels it reports it can use: the binding reads the account's vehicle list
+(`extendedCapabilities`) on the first poll and creates the matching command
+channels on the thing. A bZ4X therefore has trunk lock, buzzer, defrost, seat
+and steering wheel heaters; a hybrid also has engine start and stop; nobody
+has channels for things their car cannot do. The thing's `capabilities`
+property lists the flags.
+
 
 The control channels send what the app sends: `/v1/global/remote/command`
 for lock, unlock, hazard lights, horn and find-vehicle,

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.0 (unreleased)
+
+Capability-driven command channels: trunk lock, buzzer, engine start/stop,
+headlights, windows open/close, ventilation, and the climate options (front and
+rear defrost, steering wheel, mirror and seat heaters) are created per car from
+its reported capabilities and sent with the climate start, saved in the car.
+
 ## 1.4.0 (unreleased)
 
 Health: the warnings behind the warning count, in words (`health#warnings`,

@@ -43,7 +43,14 @@ import org.openhab.core.thing.Thing;
 import org.openhab.core.thing.ThingStatus;
 import org.openhab.core.thing.ThingStatusDetail;
 import org.openhab.core.thing.ThingStatusInfo;
+import org.openhab.core.thing.Channel;
 import org.openhab.core.thing.binding.BaseThingHandler;
+import org.openhab.core.thing.binding.builder.ChannelBuilder;
+import org.openhab.core.thing.binding.builder.ThingBuilder;
+import org.openhab.core.thing.type.ChannelTypeUID;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import org.openhab.core.types.Command;
 import org.openhab.core.types.RefreshType;
 import org.openhab.core.types.State;
@@ -82,6 +89,9 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
     private double climateTemperature = 21;
     private int climateDuration = 20;
     private boolean climateSeeded;
+    private boolean channelsProvisioned;
+    /** Climate options sent with a start: channel id -> "on"/"off" */
+    private final Map<String, String> climateOptions = new HashMap<>();
 
     public MyToyotaVehicleHandler(Thing thing) {
         super(thing);
@@ -191,6 +201,21 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                     updateState(CHANNEL_CONTROL_CHARGE_NOW, OnOffType.OFF);
                 }
             }
+            case CHANNEL_CONTROL_TRUNK_LOCK -> remoteCommand(command == OnOffType.ON ? "trunk-lock" : "trunk-unlock");
+            case CHANNEL_CONTROL_ENGINE -> remoteCommand(command == OnOffType.ON ? "engine-start" : "engine-stop");
+            case CHANNEL_CONTROL_HEADLIGHTS -> remoteCommand(command == OnOffType.ON ? "headlight-on" : "headlight-off");
+            case CHANNEL_CONTROL_BUZZER -> oneShot(id, command, "buzzer-warning");
+            case CHANNEL_CONTROL_WINDOWS_OPEN -> oneShot(id, command, "power-window-on");
+            case CHANNEL_CONTROL_WINDOWS_CLOSE -> oneShot(id, command, "power-window-close");
+            case CHANNEL_CONTROL_VENTILATION -> oneShot(id, command, "ventilation-on");
+            case CHANNEL_CONTROL_DEFROST_FRONT, CHANNEL_CONTROL_DEFROST_REAR, CHANNEL_CONTROL_STEERING_HEATER,
+                    CHANNEL_CONTROL_MIRROR_HEATER, CHANNEL_CONTROL_SEAT_DRIVER, CHANNEL_CONTROL_SEAT_PASSENGER,
+                    CHANNEL_CONTROL_SEAT_REAR_LEFT, CHANNEL_CONTROL_SEAT_REAR_RIGHT -> {
+                if (command instanceof OnOffType) {
+                    climateOptions.put(id, command == OnOffType.ON ? "on" : "off");
+                    updateState(id, (OnOffType) command);
+                }
+            }
             default -> {
                 // read-only channel
             }
@@ -216,6 +241,24 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             temp.addProperty("unit", "C");
             body.add("temperature", temp);
             body.addProperty("duration", climateDuration);
+            // the options the app keeps under "climate schedule", only those the car has channels for
+            JsonObject heating = new JsonObject();
+            putOption(heating, "frontDefroster", CHANNEL_CONTROL_DEFROST_FRONT);
+            putOption(heating, "rearDefogger", CHANNEL_CONTROL_DEFROST_REAR);
+            putOption(heating, "steeringHeater", CHANNEL_CONTROL_STEERING_HEATER);
+            putOption(heating, "mirrorHeater", CHANNEL_CONTROL_MIRROR_HEATER);
+            if (heating.size() > 0) {
+                body.add("heatingOptions", heating);
+            }
+            JsonObject seats = new JsonObject();
+            putOption(seats, "driverSeat", CHANNEL_CONTROL_SEAT_DRIVER);
+            putOption(seats, "passengerSeat", CHANNEL_CONTROL_SEAT_PASSENGER);
+            putOption(seats, "rearDriverSeat", CHANNEL_CONTROL_SEAT_REAR_LEFT);
+            putOption(seats, "rearPassengerSeat", CHANNEL_CONTROL_SEAT_REAR_RIGHT);
+            if (seats.size() > 0) {
+                body.add("seatOptions", seats);
+            }
+            body.addProperty("saveSettings", true);   // so the app's "climate schedule" shows the same
         }
         sendRemote(MyToyotaApiClient.ENDPOINT_CLIMATE_CONTROL, body, start ? "climate-start" : "climate-stop");
     }
@@ -304,6 +347,9 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             updateClimate(client.get(MyToyotaApiClient.ENDPOINT_CLIMATE_STATUS, vin));
             updateNotifications(client.get(MyToyotaApiClient.ENDPOINT_NOTIFICATIONS, vin));
             updateHealth(client.get(MyToyotaApiClient.ENDPOINT_HEALTH, vin));
+            if (!channelsProvisioned) {
+                provisionOptionalChannels(account);
+            }
             if (!climateSeeded) {
                 seedClimateSettings(client.get(MyToyotaApiClient.ENDPOINT_CLIMATE_SETTINGS, vin));
             }
@@ -622,6 +668,76 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         updateState(CHANNEL_HEALTH_TIMESTAMP, dateTime(string(p, "wnglastUpdTime")));
     }
 
+    private void putOption(JsonObject target, String apiKey, String channelId) {
+        String v = climateOptions.get(channelId);
+        if (v != null) {
+            target.addProperty(apiKey, v);
+        }
+    }
+
+    /** ON on a one-shot channel runs the command once; the channel returns to OFF. */
+    private void oneShot(String channelId, Command command, String remote) {
+        if (command == OnOffType.ON) {
+            remoteCommand(remote);
+            updateState(channelId, OnOffType.OFF);
+        }
+    }
+
+    /**
+     * Creates the optional command channels this car can use, from the extendedCapabilities in the
+     * account's vehicle list (and a few remoteServiceCapabilities flags), and drops those it cannot.
+     * A bZ4X gets trunk lock, buzzer and the climate options; a hybrid also gets engine start.
+     */
+    private void provisionOptionalChannels(MyToyotaAccountHandler account) {
+        JsonObject vehicle;
+        try {
+            vehicle = account.findVehicle(vin);
+        } catch (MyToyotaApiException e) {
+            logger.debug("Could not read capabilities for {}: {}", shortVin(), e.getMessage());
+            return;
+        }
+        if (vehicle == null) {
+            channelsProvisioned = true;
+            return;
+        }
+        JsonObject ext = object(vehicle, "extendedCapabilities");
+        JsonObject rsc = object(vehicle, "remoteServiceCapabilities");
+        ThingBuilder builder = editThing();
+        List<Channel> channels = new ArrayList<>(getThing().getChannels());
+        boolean changed = false;
+        List<String> added = new ArrayList<>();
+        for (String[] def : OPTIONAL_CHANNELS) {
+            String id = def[0];
+            boolean capable = false;
+            for (int i = 3; i < def.length; i++) {
+                capable |= flag(ext, def[i]) || flag(rsc, def[i]);
+            }
+            ChannelUID uid = new ChannelUID(getThing().getUID(), id.replace('#', ':').split(":")[0], id.substring(id.indexOf('#') + 1));
+            boolean present = getThing().getChannel(uid) != null;
+            if (capable && !present) {
+                channels.add(ChannelBuilder.create(uid, def[2]).withType(new ChannelTypeUID(BINDING_ID, def[1])).build());
+                added.add(id);
+                changed = true;
+            } else if (!capable && present) {
+                channels.removeIf(c -> c.getUID().equals(uid));
+                changed = true;
+            }
+        }
+        if (changed) {
+            updateThing(builder.withChannels(channels).build());
+            logger.info("Optional channels for {}: {}", shortVin(), added.isEmpty() ? "none added" : String.join(", ", added));
+        }
+        channelsProvisioned = true;
+    }
+
+    private static boolean flag(@Nullable JsonObject o, String key) {
+        if (o == null) {
+            return false;
+        }
+        JsonElement e = o.get(key);
+        return e != null && e.isJsonPrimitive() && e.getAsJsonPrimitive().isBoolean() && e.getAsBoolean();
+    }
+
     /** The car's saved climate settings become the initial setpoints of the climate channels. */
     private void seedClimateSettings(JsonObject resp) {
         JsonObject p = payload(resp);
@@ -636,10 +752,31 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         }
         updateState(CHANNEL_CONTROL_CLIMATE_TEMPERATURE, new QuantityType<>(climateTemperature, SIUnits.CELSIUS));
         updateState(CHANNEL_CONTROL_CLIMATE_DURATION, new QuantityType<>(climateDuration, Units.MINUTE));
+        JsonObject heating = object(p, "heatingOptions");
+        JsonObject seats = object(p, "seatOptions");
+        seedOption(heating, "frontDefroster", CHANNEL_CONTROL_DEFROST_FRONT);
+        seedOption(heating, "rearDefogger", CHANNEL_CONTROL_DEFROST_REAR);
+        seedOption(heating, "steeringHeater", CHANNEL_CONTROL_STEERING_HEATER);
+        seedOption(heating, "mirrorHeater", CHANNEL_CONTROL_MIRROR_HEATER);
+        seedOption(seats, "driverSeat", CHANNEL_CONTROL_SEAT_DRIVER);
+        seedOption(seats, "passengerSeat", CHANNEL_CONTROL_SEAT_PASSENGER);
+        seedOption(seats, "rearDriverSeat", CHANNEL_CONTROL_SEAT_REAR_LEFT);
+        seedOption(seats, "rearPassengerSeat", CHANNEL_CONTROL_SEAT_REAR_RIGHT);
         climateSeeded = true;
     }
 
     // ----------------------------------------------------------------- helpers
+
+    /** A saved on/off option becomes the channel's state and the value sent with the next start. */
+    private void seedOption(@Nullable JsonObject o, String apiKey, String channelId) {
+        String v = string(o, apiKey);
+        if (v == null || getThing().getChannel(channelId) == null) {
+            return;
+        }
+        boolean on = "on".equalsIgnoreCase(v) || "high".equalsIgnoreCase(v) || "low".equalsIgnoreCase(v);
+        climateOptions.put(channelId, on ? "on" : "off");
+        updateState(channelId, OnOffType.from(on));
+    }
 
     private static JsonObject payload(JsonObject resp) {
         JsonObject p = object(resp, "payload");

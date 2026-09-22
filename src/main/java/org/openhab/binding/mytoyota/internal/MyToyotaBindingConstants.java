@@ -91,6 +91,40 @@ public class MyToyotaBindingConstants {
     public static final String CHANNEL_CONTROL_CHARGE_NOW = "control#chargeNow";
     public static final String CHANNEL_CONTROL_LAST_RESULT = "control#lastCommandResult";
 
+    // optional command channels, created per vehicle from its extendedCapabilities (see
+    // MyToyotaVehicleHandler.provisionOptionalChannels): id, channel type, item type, capability keys (any true)
+    public static final String[][] OPTIONAL_CHANNELS = {
+            { "control#trunkLock", "trunk-lock", "Switch", "trunkLockUnlockCapable" },
+            { "control#buzzer", "trigger-command", "Switch", "buzzerCapable" },
+            { "control#engine", "engine", "Switch", "remoteEngineStartStop" },
+            { "control#headlights", "headlights", "Switch", "lightsCapable" },
+            { "control#windowsOpen", "trigger-command", "Switch", "windowsOpenCapable" },
+            { "control#windowsClose", "trigger-command", "Switch", "windowsCloseCapable" },
+            { "control#ventilation", "trigger-command", "Switch", "ventilatorCapable" },
+            { "control#defrostFront", "climate-option", "Switch", "frontDefogger" },
+            { "control#defrostRear", "climate-option", "Switch", "rearDefogger" },
+            { "control#steeringHeater", "climate-option", "Switch", "steeringHeater" },
+            { "control#mirrorHeater", "climate-option", "Switch", "mirrorHeater" },
+            { "control#seatHeaterDriver", "climate-option", "Switch", "frontDriverSeatHeater" },
+            { "control#seatHeaterPassenger", "climate-option", "Switch", "frontPassengerSeatHeater" },
+            { "control#seatHeaterRearLeft", "climate-option", "Switch", "rearDriverSeatHeater" },
+            { "control#seatHeaterRearRight", "climate-option", "Switch", "rearPassengerSeatHeater" } };
+    public static final String CHANNEL_CONTROL_TRUNK_LOCK = "control#trunkLock";
+    public static final String CHANNEL_CONTROL_BUZZER = "control#buzzer";
+    public static final String CHANNEL_CONTROL_ENGINE = "control#engine";
+    public static final String CHANNEL_CONTROL_HEADLIGHTS = "control#headlights";
+    public static final String CHANNEL_CONTROL_WINDOWS_OPEN = "control#windowsOpen";
+    public static final String CHANNEL_CONTROL_WINDOWS_CLOSE = "control#windowsClose";
+    public static final String CHANNEL_CONTROL_VENTILATION = "control#ventilation";
+    public static final String CHANNEL_CONTROL_DEFROST_FRONT = "control#defrostFront";
+    public static final String CHANNEL_CONTROL_DEFROST_REAR = "control#defrostRear";
+    public static final String CHANNEL_CONTROL_STEERING_HEATER = "control#steeringHeater";
+    public static final String CHANNEL_CONTROL_MIRROR_HEATER = "control#mirrorHeater";
+    public static final String CHANNEL_CONTROL_SEAT_DRIVER = "control#seatHeaterDriver";
+    public static final String CHANNEL_CONTROL_SEAT_PASSENGER = "control#seatHeaterPassenger";
+    public static final String CHANNEL_CONTROL_SEAT_REAR_LEFT = "control#seatHeaterRearLeft";
+    public static final String CHANNEL_CONTROL_SEAT_REAR_RIGHT = "control#seatHeaterRearRight";
+
     // notifications (what the app shows)
     public static final String CHANNEL_NOTIFY_LATEST = "notifications#latest";
     public static final String CHANNEL_NOTIFY_LATEST_TIME = "notifications#latestTime";

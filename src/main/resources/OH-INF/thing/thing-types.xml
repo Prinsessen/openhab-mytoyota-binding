@@ -232,7 +232,10 @@
 	<channel-group-type id="control">
 		<label>Control</label>
 		<description>Remote commands as the MyToyota app sends them. The cloud answers with a return code (000000 =
-			accepted) shown on lastCommandResult; the car's own state channels are polled again 45 s later to confirm.</description>
+			accepted) shown on lastCommandResult; the car's own state channels are polled again 45 s later to confirm.
+			Besides the channels listed here, the binding adds the ones this car reports it can do: trunk lock, buzzer,
+			engine start/stop, headlights, windows open/close, ventilation, and the climate options (defrost, seat and
+			steering wheel heaters).</description>
 		<channels>
 			<channel id="refresh" typeId="refresh"/>
 			<channel id="lock" typeId="lock"/>
@@ -482,6 +485,36 @@
 		<label>Worst Severity</label>
 		<description>The highest severity among active warnings; 0 when none.</description>
 		<state readOnly="true" pattern="%d"/>
+	</channel-type>
+
+	<channel-type id="trunk-lock">
+		<item-type>Switch</item-type>
+		<label>Trunk Lock</label>
+		<description>ON locks the trunk, OFF unlocks it. Created only for cars that report trunkLockUnlockCapable.</description>
+		<autoUpdatePolicy>veto</autoUpdatePolicy>
+	</channel-type>
+
+	<channel-type id="engine">
+		<item-type>Switch</item-type>
+		<label>Engine</label>
+		<description>ON starts the engine remotely, OFF stops it (hybrids and combustion cars that report
+			remoteEngineStartStop; never created for a battery EV).</description>
+		<autoUpdatePolicy>veto</autoUpdatePolicy>
+	</channel-type>
+
+	<channel-type id="headlights">
+		<item-type>Switch</item-type>
+		<label>Headlights</label>
+		<description>ON / OFF, for cars that report lightsCapable.</description>
+		<autoUpdatePolicy>veto</autoUpdatePolicy>
+	</channel-type>
+
+	<channel-type id="climate-option">
+		<item-type>Switch</item-type>
+		<label>Climate Option</label>
+		<description>An on/off option sent with the next remote climate start and saved in the car (the app's
+			"climate schedule"): front defrost, rear defogger, steering wheel heater, mirror heater, seat heaters.
+			Created only for the options the car reports.</description>
 	</channel-type>
 
 	<channel-type id="timestamp" advanced="true">

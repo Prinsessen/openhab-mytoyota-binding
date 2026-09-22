@@ -121,6 +121,20 @@ public class MyToyotaAccountHandler extends BaseBridgeHandler {
         return payload == null ? new JsonArray() : payload;
     }
 
+    /** The vehicle list entry for a VIN (capabilities, model, nickname), or null. */
+    public @Nullable JsonObject findVehicle(String vin) throws MyToyotaApiException {
+        for (com.google.gson.JsonElement el : listVehicles()) {
+            if (el.isJsonObject()) {
+                JsonObject v = el.getAsJsonObject();
+                com.google.gson.JsonElement vinEl = v.get("vin");
+                if (vinEl != null && vinEl.isJsonPrimitive() && vin.equalsIgnoreCase(vinEl.getAsString())) {
+                    return v;
+                }
+            }
+        }
+        return null;
+    }
+
     /** Called by a vehicle handler when a call failed, so the bridge status reflects it. */
     void reportCommunication(boolean ok, @Nullable String message) {
         if (ok) {
