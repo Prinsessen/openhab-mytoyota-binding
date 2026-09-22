@@ -175,8 +175,8 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                     });
                 }
             }
-            case CHANNEL_CONTROL_LOCK -> remoteCommand(command == OnOffType.ON ? "door-lock" : "door-unlock");
-            case CHANNEL_CONTROL_HAZARD -> remoteCommand(command == OnOffType.ON ? "hazard-on" : "hazard-off");
+            case CHANNEL_CONTROL_LOCK -> remoteCommand(command == OnOffType.ON ? "door-lock" : "door-unlock", id, command);
+            case CHANNEL_CONTROL_HAZARD -> remoteCommand(command == OnOffType.ON ? "hazard-on" : "hazard-off", id, command);
             case CHANNEL_CONTROL_HORN -> {
                 if (command == OnOffType.ON) {
                     remoteCommand("sound-horn");
@@ -212,9 +212,9 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                     updateState(CHANNEL_CONTROL_CHARGE_NOW, OnOffType.OFF);
                 }
             }
-            case CHANNEL_CONTROL_TRUNK_LOCK -> remoteCommand(command == OnOffType.ON ? "trunk-lock" : "trunk-unlock");
-            case CHANNEL_CONTROL_ENGINE -> remoteCommand(command == OnOffType.ON ? "engine-start" : "engine-stop");
-            case CHANNEL_CONTROL_HEADLIGHTS -> remoteCommand(command == OnOffType.ON ? "headlight-on" : "headlight-off");
+            case CHANNEL_CONTROL_TRUNK_LOCK -> remoteCommand(command == OnOffType.ON ? "trunk-lock" : "trunk-unlock", id, command);
+            case CHANNEL_CONTROL_ENGINE -> remoteCommand(command == OnOffType.ON ? "engine-start" : "engine-stop", id, command);
+            case CHANNEL_CONTROL_HEADLIGHTS -> remoteCommand(command == OnOffType.ON ? "headlight-on" : "headlight-off", id, command);
             case CHANNEL_CONTROL_BUZZER -> oneShot(id, command, "buzzer-warning");
             case CHANNEL_CONTROL_WINDOWS_OPEN -> oneShot(id, command, "power-window-on");
             case CHANNEL_CONTROL_WINDOWS_CLOSE -> oneShot(id, command, "power-window-close");
@@ -237,9 +237,18 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
 
     /** {"command":"door-lock"} and friends on /v1/global/remote/command */
     private void remoteCommand(String name) {
+        remoteCommand(name, null, null);
+    }
+
+    /**
+     * Same, for a command channel that mirrors a state of the car: once the cloud accepts the request the channel
+     * shows the commanded state at once instead of the old mirrored one, so the UI does not flick back for the
+     * 45 s until the confirming poll. If the car refuses, that poll puts the real state back.
+     */
+    private void remoteCommand(String name, @Nullable String channel, @Nullable Command expected) {
         JsonObject body = new JsonObject();
         body.addProperty("command", name);
-        sendRemote(MyToyotaApiClient.ENDPOINT_COMMAND, body, name);
+        sendRemote(MyToyotaApiClient.ENDPOINT_COMMAND, body, name, channel, expected);
     }
 
     /** Climate start with the held temperature and duration, or stop. */
@@ -271,7 +280,8 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             }
             body.addProperty("saveSettings", true);   // so the app's "climate schedule" shows the same
         }
-        sendRemote(MyToyotaApiClient.ENDPOINT_CLIMATE_CONTROL, body, start ? "climate-start" : "climate-stop");
+        sendRemote(MyToyotaApiClient.ENDPOINT_CLIMATE_CONTROL, body, start ? "climate-start" : "climate-stop",
+                CHANNEL_CONTROL_CLIMATE, OnOffType.from(start));
     }
 
     /**
@@ -280,6 +290,11 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
      * whether the car did it is only visible in the state channels afterwards.
      */
     private void sendRemote(String endpoint, JsonObject body, String label) {
+        sendRemote(endpoint, body, label, null, null);
+    }
+
+    private void sendRemote(String endpoint, JsonObject body, String label, @Nullable String channel,
+            @Nullable Command expected) {
         scheduler.execute(() -> {
             MyToyotaAccountHandler account = getAccount();
             MyToyotaApiClient client = account == null ? null : account.getClient();
@@ -295,6 +310,9 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                         + (msg == null ? "" : " (" + msg + ")");
                 logger.info("Remote command on {}: {}", shortVin(), result);
                 updateState(CHANNEL_CONTROL_LAST_RESULT, new StringType(result));
+                if (channel != null && expected instanceof State expectedState && "000000".equals(code)) {
+                    updateState(channel, expectedState);   // accepted: show it now, the repoll confirms or corrects
+                }
                 lastWake = Instant.now();
                 updateState(CHANNEL_CONTROL_LAST_WAKE, new DateTimeType(ZonedDateTime.now()));
                 if (label.startsWith("climate")) {

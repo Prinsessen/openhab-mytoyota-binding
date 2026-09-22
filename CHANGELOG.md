@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.1 — 2026-09-22
+
+Command channels that mirror the car (lock, trunk, hazard, climate, engine,
+headlights) show the commanded state as soon as the cloud accepts the request,
+instead of flicking back to the old state for the 45 s until the confirming
+poll. If the car refuses, that poll puts the real state back. Trunk unlock
+verified on the bZ4X.
+
 ## 1.7.0 — 2026-09-22
 
 Everything pytoyoda reads, and the whole app status page, in one release

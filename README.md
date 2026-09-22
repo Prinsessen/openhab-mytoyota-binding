@@ -337,7 +337,8 @@ different colours. Copy it to openHAB's `html/` folder and embed it with
 | wake (`control#refresh`, `wakeWhileCharging`) | verified: fresh state of charge within 45 s, door state within 15 s |
 | `control#lock` | verified, including the car refusing it with the key fob inside, reported on `notifications#latest` |
 | trips, service history | code from pytoyoda's model; the test car had no trips yet when released |
-| unlock, hazard, horn, find, climate start/stop and options, charge now, trunk, buzzer | same request shape as the app; not yet exercised on a car |
+| `control#trunkLock` (unlock) | verified |
+| unlock, hazard, horn, find, climate start/stop and options, charge now, buzzer | same request shape as the app; not yet exercised on a car |
 | Lexus, Subaru | same service, different realm; untested |
 
 Please report what works on your model, with the `capabilities` property.
