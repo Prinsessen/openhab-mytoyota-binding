@@ -183,6 +183,21 @@ cloud keeps about 12 months.
 | channel | type | |
 |---|---|---|
 | `climate#status` | String | `stopped`, `starting`, `running` |
+| `climate#startedAt` | DateTime | when the running session began |
+| `climate#remaining` | Number:Time | minutes left, `startedAt + duration - now` |
+| `climate#cabinTemperature` | Number:Temperature | measured cabin temperature |
+| `climate#targetTemperature` | Number:Temperature | what the session is aiming for |
+
+With the climate off the car answers with nothing but `{"status":"stopped"}`, so the four
+below read UNDEF; they fill in as the session starts. Measured on a bZ4X, 2026-09-24:
+`targetTemperature` arrives with `starting`, and `startedAt`, `remaining` and
+`cabinTemperature` a few seconds later with `running`. There is no countdown field in the
+payload - the app's "3:10 left" is the arithmetic `remaining` does.
+
+Two preconditions are the car's, not the binding's, and both answer `000000` from the cloud
+before the car refuses a few seconds later, so watch the notifications rather than the
+return code: **the car must be locked**, and it allows **20 minutes of climate in total
+between two ignition starts**. Past that it says so in a notification and does nothing.
 
 ### notifications (what the app shows)
 
