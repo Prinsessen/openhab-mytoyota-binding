@@ -105,6 +105,10 @@ public class MyToyotaBindingConstants {
 
     // climate
     public static final String CHANNEL_CLIMATE_STATUS = "climate#status";
+    public static final String CHANNEL_CLIMATE_STARTED = "climate#startedAt";
+    public static final String CHANNEL_CLIMATE_REMAINING = "climate#remaining";
+    public static final String CHANNEL_CLIMATE_CABIN_TEMP = "climate#cabinTemperature";
+    public static final String CHANNEL_CLIMATE_TARGET_TEMP = "climate#targetTemperature";
 
     // control
     public static final String CHANNEL_CONTROL_REFRESH = "control#refresh";

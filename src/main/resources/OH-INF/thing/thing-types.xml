@@ -245,6 +245,10 @@
 		<label>Climate</label>
 		<channels>
 			<channel id="status" typeId="climate-status"/>
+			<channel id="startedAt" typeId="climate-started"/>
+			<channel id="remaining" typeId="climate-remaining"/>
+			<channel id="cabinTemperature" typeId="climate-cabin-temperature"/>
+			<channel id="targetTemperature" typeId="climate-target-temperature"/>
 		</channels>
 	</channel-group-type>
 
@@ -400,6 +404,39 @@
 		<label>Climate Status</label>
 		<description>stopped, starting or running.</description>
 		<state readOnly="true"/>
+	</channel-type>
+
+	<!--
+		The climate-status payload collapses to just the status while the climate is off, and
+		fills in the rest only while it is starting or running. There is no countdown in it;
+		the time left is startedAt + duration - now.
+	-->
+	<channel-type id="climate-started">
+		<item-type>DateTime</item-type>
+		<label>Climate Started</label>
+		<description>When the running climate session began. UNDEF while stopped.</description>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="climate-remaining">
+		<item-type>Number:Time</item-type>
+		<label>Climate Remaining</label>
+		<description>Minutes left of the running climate session. UNDEF while stopped.</description>
+		<state readOnly="true" pattern="%.0f min"/>
+	</channel-type>
+
+	<channel-type id="climate-cabin-temperature">
+		<item-type>Number:Temperature</item-type>
+		<label>Cabin Temperature</label>
+		<description>Measured cabin temperature, reported while the climate runs.</description>
+		<state readOnly="true" pattern="%.1f %unit%"/>
+	</channel-type>
+
+	<channel-type id="climate-target-temperature">
+		<item-type>Number:Temperature</item-type>
+		<label>Climate Target Temperature</label>
+		<description>What the running session is aiming for.</description>
+		<state readOnly="true" pattern="%.1f %unit%"/>
 	</channel-type>
 
 	<channel-type id="refresh">

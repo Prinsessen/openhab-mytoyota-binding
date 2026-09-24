@@ -573,12 +573,54 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         }
     }
 
+    /**
+     * The climate-status payload, all of it.
+     *
+     * Off, the car answers with nothing but {@code {"status":"stopped"}}; the rest of the
+     * fields appear only while it is starting or running. There is no countdown in the
+     * payload - the app's "3:10 left" is arithmetic on {@code startedAt} and
+     * {@code duration}, and that is what the remaining channel carries.
+     */
     private void updateClimate(JsonObject resp) {
-        String status = string(payload(resp), "status");
+        JsonObject p = payload(resp);
+        String status = string(p, "status");
         updateState(CHANNEL_CLIMATE_STATUS, status == null ? UnDefType.UNDEF : new StringType(status));
         // the climate command channel mirrors the car: ON while starting or running
-        updateState(CHANNEL_CONTROL_CLIMATE, status == null ? UnDefType.UNDEF
-                : OnOffType.from(!"stopped".equalsIgnoreCase(status) && !"off".equalsIgnoreCase(status)));
+        boolean on = status != null && !"stopped".equalsIgnoreCase(status) && !"off".equalsIgnoreCase(status);
+        updateState(CHANNEL_CONTROL_CLIMATE, status == null ? UnDefType.UNDEF : OnOffType.from(on));
+
+        Instant startedAt = null;
+        String started = string(p, "startedAt");
+        if (started != null) {
+            try {
+                startedAt = Instant.parse(started);
+            } catch (DateTimeParseException e) {
+                logger.debug("Climate startedAt not an instant: {}", started);
+            }
+        }
+        updateState(CHANNEL_CLIMATE_STARTED, startedAt == null ? UnDefType.UNDEF
+                : new DateTimeType(ZonedDateTime.ofInstant(startedAt, ZoneId.systemDefault())));
+
+        Double duration = number(p == null ? null : p.get("duration"));
+        if (on && startedAt != null && duration != null && duration > 0) {
+            long ranMin = java.time.Duration.between(startedAt, Instant.now()).toMinutes();
+            long left = Math.max(0, Math.round(duration) - ranMin);
+            updateState(CHANNEL_CLIMATE_REMAINING, new QuantityType<>(left, Units.MINUTE));
+        } else {
+            updateState(CHANNEL_CLIMATE_REMAINING, UnDefType.UNDEF);
+        }
+
+        updateState(CHANNEL_CLIMATE_CABIN_TEMP, temperatureOf(object(p, "currentTemperature")));
+        updateState(CHANNEL_CLIMATE_TARGET_TEMP, temperatureOf(object(p, "targetTemperature")));
+    }
+
+    /** A {value, unit} block as a temperature; Fahrenheit is honoured if the car ever sends it. */
+    private static State temperatureOf(@Nullable JsonObject o) {
+        if (o == null) {
+            return UnDefType.UNDEF;
+        }
+        String unit = string(o, "unit");
+        return quantity(o.get("value"), "F".equalsIgnoreCase(unit) ? ImperialUnits.FAHRENHEIT : SIUnits.CELSIUS);
     }
 
     /** One-shot command channels rest at OFF so their Switch items never show NULL. */
