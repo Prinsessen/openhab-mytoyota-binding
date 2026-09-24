@@ -984,11 +984,27 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
     }
 
     /** The car's saved climate settings become the initial setpoints of the climate channels. */
+    /**
+     * Reads the car's own climate temperature and duration once and publishes them.
+     *
+     * The seeding is marked done only when the car actually answered with a temperature or a
+     * duration. It used to be marked done whichever way it went, and that is a trap with a
+     * one-shot: on 2026-09-22 the call landed while the handler was already disposed - the
+     * framework logged "tried updating the thing status although the handler was already
+     * disposed" twice - so every updateState here went nowhere, the flag was set, and the
+     * two channels never sent a value again. Two days later the climate temperature and
+     * duration items were still NULL, and the preheat rule was starting the car on the
+     * binding's fallback of 21 degrees while the car itself was set to 25.
+     */
     private void seedClimateSettings(JsonObject resp) {
         JsonObject p = payload(resp);
         JsonObject temperature = object(p, "temperature");
         Double t = temperature == null ? null : number(temperature.get("value"));
         Double d = number(p.get("duration"));
+        if (t == null && (d == null || d < 1)) {
+            logger.debug("Climate settings carried neither temperature nor duration; will try again");
+            return;   // leaves climateSeeded false, so the next poll asks again
+        }
         if (t != null) {
             climateTemperature = t;
         }
