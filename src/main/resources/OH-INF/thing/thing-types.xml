@@ -97,6 +97,8 @@
 				<label>EV Range with A/C</label>
 			</channel>
 			<channel id="chargingStatus" typeId="charging-status"/>
+			<channel id="chargingSchedule" typeId="charging-schedule"/>
+			<channel id="nextChargingEvent" typeId="next-charging-event"/>
 			<channel id="charging" typeId="charging"/>
 			<channel id="remainingChargeTime" typeId="remaining-charge-time"/>
 			<channel id="lastUpdate" typeId="timestamp">
@@ -163,6 +165,14 @@
 			<channel id="name" typeId="location-name"/>
 			<channel id="lastUpdate" typeId="timestamp">
 				<label>Position Acquired</label>
+			</channel>
+			<channel id="reportedAt" typeId="timestamp">
+				<label>Location Record Refreshed</label>
+				<description>The location record's own timestamp, which is not the same as Position Acquired: that is
+					when the car fixed its position, this is when the backend last refreshed the record. Both stand
+					still while the car is parked, so neither says whether the car is awake - measured on a bZ4X that
+					was charging and reporting its battery every five minutes with both of these seven hours old. For
+					"is the car answering", read the battery and status timestamps.</description>
 			</channel>
 		</channels>
 	</channel-group-type>
@@ -396,6 +406,22 @@
 	<channel-type id="hazard-lights" advanced="true">
 		<item-type>Switch</item-type>
 		<label>Hazard Lights</label>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="charging-schedule">
+		<item-type>String</item-type>
+		<label>Charging Schedule</label>
+		<description>The schedule the car keeps for itself, as one line. A schedule left on will refuse current from a
+			charger that is offering it, and nothing on the charger's side looks wrong while it happens. UNDEF when the
+			car sends no schedule at all.</description>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="next-charging-event">
+		<item-type>String</item-type>
+		<label>Next Charging Event</label>
+		<description>The car's own next planned charge, as it sends it. UNDEF when there is none.</description>
 		<state readOnly="true"/>
 	</channel-type>
 

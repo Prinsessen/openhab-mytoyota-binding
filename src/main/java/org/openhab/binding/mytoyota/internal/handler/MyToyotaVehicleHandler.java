@@ -78,6 +78,9 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
 
     private static final int REPOLL_AFTER_WAKE_SECONDS = 45;
 
+    /** Above a day, a remaining-charge time is Toyota's placeholder rather than an estimate. */
+    private static final int MAX_PLAUSIBLE_CHARGE_MINUTES = 1440;
+
     private final Logger logger = LoggerFactory.getLogger(MyToyotaVehicleHandler.class);
 
     private String vin = "";
@@ -458,8 +461,86 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         updateState(CHANNEL_BATTERY_CHARGING, status == null ? UnDefType.UNDEF : new StringType(status));
         charging = status != null && status.toLowerCase().contains("charging");
         updateState(CHANNEL_BATTERY_CHARGING_ACTIVE, OnOffType.from(charging));
-        updateState(CHANNEL_BATTERY_REMAINING_TIME, quantity(p.get("remainingChargeTime"), Units.MINUTE));
+        updateState(CHANNEL_BATTERY_REMAINING_TIME, remainingChargeTime(p));
         updateState(CHANNEL_BATTERY_TIMESTAMP, dateTime(string(p, "lastUpdateTimestamp")));
+        // The payload carries more than this in some states - charging schedules and the
+        // car's own next charging event among them - and none of it has been seen from the
+        // car here yet, because the one capture was taken while it stood idle. Logged whole
+        // at debug level so a channel can be built on an observed shape rather than a guess.
+        logger.debug("Electric status payload: {}", p);
+        updateState(CHANNEL_BATTERY_SCHEDULE, chargingSchedule(p));
+        JsonObject next = object(p, "nextChargingEvent");
+        updateState(CHANNEL_BATTERY_NEXT_EVENT, next == null ? UnDefType.UNDEF
+                : new StringType(next.toString()));
+    }
+
+    /**
+     * The car's own charging schedule, as one readable line.
+     *
+     * Worth having because a schedule left on in the car will refuse current from a charger
+     * that is offering it, and nothing on the charger's side looks wrong while it happens.
+     * Rendered as text rather than a channel per weekday: the point is to answer "is there a
+     * schedule, and when", which is a question you ask, not one you automate on.
+     *
+     * Not yet seen from the car here - the one capture was taken while it stood idle and
+     * carried none of these fields - so this is written to the shape pytoyoda documents and
+     * returns UNDEF when the fields are absent.
+     */
+    private State chargingSchedule(@Nullable JsonObject p) {
+        JsonArray list = p == null || !p.has("chargingSchedules") || !p.get("chargingSchedules").isJsonArray()
+                ? null
+                : p.getAsJsonArray("chargingSchedules");
+        if (list == null || list.size() == 0) {
+            return UnDefType.UNDEF;
+        }
+        List<String> parts = new ArrayList<>();
+        String[] days = { "mon", "tue", "wed", "thu", "fri", "sat", "sun" };
+        for (JsonElement el : list) {
+            if (!el.isJsonObject()) {
+                continue;
+            }
+            JsonObject o = el.getAsJsonObject();
+            Boolean on = o.has("enabled") && o.get("enabled").isJsonPrimitive()
+                    ? o.get("enabled").getAsBoolean()
+                    : null;
+            if (Boolean.FALSE.equals(on)) {
+                continue;
+            }
+            StringBuilder d = new StringBuilder();
+            for (String day : days) {
+                if (o.has(day) && o.get(day).isJsonPrimitive() && o.get(day).getAsBoolean()) {
+                    d.append(d.length() == 0 ? "" : ",").append(day);
+                }
+            }
+            Double hh = number(o.get("hour"));
+            Double mm = number(o.get("minute"));
+            String at = hh == null ? "" : String.format("%02d:%02d", hh.intValue(), mm == null ? 0 : mm.intValue());
+            String end = string(o, "endTime");
+            parts.add((d.length() == 0 ? "daily" : d.toString()) + (at.isEmpty() ? "" : " " + at)
+                    + (end == null ? "" : "-" + end));
+        }
+        return parts.isEmpty() ? new StringType("none enabled") : new StringType(String.join("; ", parts));
+    }
+
+    /**
+     * Minutes to a full charge, with Toyota's sentinel filtered out.
+     *
+     * The backend sends a placeholder - 65535 and 65335 have both been seen - in this field
+     * when the car is not charging, and left alone that renders as forty-five days remaining.
+     * Above a day it is not believable unless the car is charging, and then it is: a slow
+     * trickle really can take that long, and there is nothing else to tell the two apart.
+     * Same rule pytoyoda settled on in 5.2.5.
+     */
+    private State remainingChargeTime(@Nullable JsonObject p) {
+        Double v = number(p == null ? null : p.get("remainingChargeTime"));
+        if (v == null) {
+            return UnDefType.UNDEF;
+        }
+        if (v > MAX_PLAUSIBLE_CHARGE_MINUTES && !charging) {
+            logger.debug("Ignoring implausible remainingChargeTime {} while not charging", v);
+            return UnDefType.UNDEF;
+        }
+        return new QuantityType<>(v, Units.MINUTE);
     }
 
     private void updateTelemetry(JsonObject resp) {
@@ -486,6 +567,12 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         State acquired = dateTime(string(loc, "locationAcquisitionDatetime"));
         updateState(CHANNEL_LOCATION_TIMESTAMP, acquired);
         lastSeen.put(CHANNEL_LOCATION_TIMESTAMP, acquired.toString());
+        // Two different times, and the difference matters. The one above is when the car
+        // fixed its position; this one is when the backend last had anything from the car at
+        // all. Half an hour apart in the first capture taken here. A car that has gone quiet
+        // - modem asleep on a tired 12 V battery, for instance - keeps its old fix and stops
+        // advancing this, which is the only way to tell "has not moved" from "is not there".
+        updateState(CHANNEL_LOCATION_REPORTED, dateTime(string(p, "lastTimestamp")));
     }
 
     private void updateVehicleStatus(JsonObject resp) {
