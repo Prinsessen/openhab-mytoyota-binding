@@ -182,9 +182,9 @@ thing property are all that is needed to extend the binding.
 * **Full Documentation:** [README.md](https://github.com/Prinsessen/openhab-mytoyota-binding/blob/main/README.md)
 * **Examples:** [examples/](https://github.com/Prinsessen/openhab-mytoyota-binding/tree/main/examples)
 * **Changelog:** [CHANGELOG.md](https://github.com/Prinsessen/openhab-mytoyota-binding/blob/main/CHANGELOG.md)
-* **Release:** [v1.7.1 — MyToyota Binding 1.7.1](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/tag/v1.7.1)
+* **Release:** [v1.8.0 — MyToyota Binding 1.8.0](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/tag/v1.8.0)
 * **License:** EPL-2.0
 
 ---
 
-*Tested on openHAB 5.1. Not affiliated with Toyota Motor Corporation; "Toyota", "Lexus", "Subaru" and "MyToyota" are trademarks of their owners.*
+*Tested on openHAB 5.2. Not affiliated with Toyota Motor Corporation; "Toyota", "Lexus", "Subaru" and "MyToyota" are trademarks of their owners.*
