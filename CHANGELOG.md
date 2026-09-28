@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.1 — 2026-09-28
+
+A car that is not in the account's vehicle list is looked for again every
+hour instead of once. On 2026-09-26 the MyToyota cloud dropped the test car
+("your car was successfully removed from the app") and the owner had to add
+the VIN again; with 1.8.0 a car that came back that way would have been polled
+without its properties and capability channels until openHAB restarted. No
+other change.
+
 ## 1.8.0 — 2026-09-28
 
 For the cars that burn fuel, after the first forum report (a RAV4 plug-in

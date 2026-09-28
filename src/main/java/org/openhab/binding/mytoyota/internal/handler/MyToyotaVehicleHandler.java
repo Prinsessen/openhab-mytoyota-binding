@@ -105,6 +105,8 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
     private int pollOk;
     private @Nullable String lastReadError;
     private static final int FAILURES_BEFORE_BACKOFF = 3;
+    /** When to look at the vehicle list again for a car that was not in it. */
+    private Instant vehicleInfoRetryAt = Instant.EPOCH;
     private static final long FAILED_READ_RETRY_S = 3600;
     private Instant lastTripsFetch = Instant.EPOCH;
     private Instant lastServiceFetch = Instant.EPOCH;
@@ -392,7 +394,7 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                     && Instant.now().isAfter(lastWake.plusSeconds(wakeMinutes * 60L))) {
                 wake(false);
             }
-            if (vehicleInfo == null) {
+            if (vehicleInfo == null && Instant.now().isAfter(vehicleInfoRetryAt)) {
                 loadVehicleInfo(account);
             }
             // Every read on its own, so one endpoint a car does not have cannot take the rest of it
@@ -524,8 +526,13 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             return;                                    // try again next poll
         }
         if (vehicle == null) {
-            logger.info("{} is not in the account's vehicle list; polled without capabilities", shortVin());
-            vehicleInfo = new JsonObject();
+            // A car can leave the account and come back: on 2026-09-26 the MyToyota cloud dropped
+            // the test car ("successfully removed from the app") and the owner had to add the VIN
+            // again. The list is therefore read again every hour rather than once, so a car that
+            // returns gets its properties and channels without a restart.
+            logger.info("{} is not in the account's vehicle list; polled without capabilities, list read again in an hour",
+                    shortVin());
+            vehicleInfoRetryAt = Instant.now().plusSeconds(FAILED_READ_RETRY_S);
             channelsProvisioned = true;
             return;
         }
