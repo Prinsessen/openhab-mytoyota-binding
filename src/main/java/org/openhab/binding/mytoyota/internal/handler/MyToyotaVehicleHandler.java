@@ -404,7 +404,6 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             // treats a failure as optional; both are done here.
             pollAttempted = 0;
             pollOk = 0;
-            lastReadError = null;
             if (electricCapable) {
                 read("electric status", () -> readElectric(client), this::updateElectric);
             }
@@ -430,10 +429,15 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                 read("climate settings", () -> client.get(MyToyotaApiClient.ENDPOINT_CLIMATE_SETTINGS, vin), this::seedClimateSettings);
             }
             updateState(CHANNEL_CONTROL_LAST_POLL, new DateTimeType(ZonedDateTime.now()));
-            if (pollAttempted > 0 && pollOk == 0) {
+            // Nothing answered - whether every read failed or every read is waiting out its hourly
+            // backoff. Either way the car is not there, and the thing must say so; 1.8.0 and 1.8.1
+            // fell through to ONLINE while all reads were backed off, so a car the cloud had dropped
+            // showed ONLINE for 55 minutes of every hour.
+            if (pollOk == 0) {
                 String why = lastReadError;
-                throw new MyToyotaApiException(why == null ? "every read failed" : why);
+                throw new MyToyotaApiException(why == null ? "no read answered" : why);
             }
+            lastReadError = null;
             if (getThing().getStatus() != ThingStatus.ONLINE) {
                 updateStatus(ThingStatus.ONLINE);
                 restOneShotChannels();

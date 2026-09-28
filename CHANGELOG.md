@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.2 — 2026-09-28
+
+A car that nothing answers for stays OFFLINE. 1.8.0 and 1.8.1 put every failed
+read on an hourly retry after three failures, and a poll in which every read
+was waiting out that retry attempted nothing - and then fell through to ONLINE.
+A car the cloud had dropped therefore showed ONLINE for 55 minutes of every
+hour. Found by walking through what 1.8.1 would do if 2026-09-26 happened
+again, before it did. No other change.
+
 ## 1.8.1 — 2026-09-28
 
 A car that is not in the account's vehicle list is looked for again every
