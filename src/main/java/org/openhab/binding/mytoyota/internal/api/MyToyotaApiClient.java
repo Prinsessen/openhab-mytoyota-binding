@@ -70,6 +70,12 @@ public class MyToyotaApiClient {
     public static final String ENDPOINT_VEHICLES = "/v2/vehicle/guid";
     public static final String ENDPOINT_VEHICLE_STATUS = "/v1/vehicle/status";
     public static final String ENDPOINT_ELECTRIC_STATUS = "/v1/global/remote/electric/status";
+    /**
+     * Where pytoyoda 5.2.8 moved the electric read in September 2026: Toyota fenced the global route
+     * behind AWS SigV4 (403 APIGW) and the app reads from the plain namespace. The global route still
+     * answers for the test car, so it stays first and this is the fallback a 403 switches to.
+     */
+    public static final String ENDPOINT_ELECTRIC_STATUS_V2 = "/v1/vehicle/electric/status";
     public static final String ENDPOINT_ELECTRIC_REALTIME = "/v1/global/remote/electric/realtime-status";
     public static final String ENDPOINT_REFRESH_STATUS = "/v1/remote/status";
     public static final String ENDPOINT_LOCATION = "/v1/location";
@@ -311,7 +317,7 @@ public class MyToyotaApiClient {
             }
         }
         throw new MyToyotaApiException(method + " " + endpoint + " failed: " + (resp == null ? "no response"
-                : resp.statusCode() + " " + shortBody(resp.body())));
+                : resp.statusCode() + " " + shortBody(resp.body())), resp == null ? 0 : resp.statusCode());
     }
 
     private HttpRequest buildApiRequest(String method, String endpoint, @Nullable String vin,

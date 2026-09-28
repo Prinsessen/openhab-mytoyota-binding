@@ -1,5 +1,48 @@
 # Changelog
 
+## 1.8.0 — 2026-09-28
+
+For the cars that burn fuel, after the first forum report (a RAV4 plug-in
+hybrid with "no capabilities for the petrol side" and a thing showing only
+`vendor: Toyota`), and a pass through pytoyoda 5.2.9 for what it reads that
+this did not.
+
+- **A fuel-only or full-hybrid car no longer goes OFFLINE.** The electric
+  status was read for every car and its failure ended the whole poll. Now every
+  read stands on its own, the battery is asked only of cars the vehicle list
+  calls electric (pytoyoda's rule: `evVehicle`, `fuelType` E or I, or
+  `econnectVehicleStatusCapable`), a read that fails three times in a row is
+  retried hourly and logged once, and the thing goes OFFLINE only when every
+  read of a poll failed.
+- **Properties for every thing**, not just discovered ones: VIN, model, year,
+  nickname, generation, `evVehicle`, and new `fuelType` and `vehicleType`
+  (electric / plug-in hybrid / full hybrid / fuel-only), and `capabilities` now
+  covering both `extendedCapabilities` and `remoteServiceCapabilities`.
+- **Capability channels see both spellings** - `estartStopCapable`,
+  `headLightCapable`, `powerWindowCapable`, `trunkCapable`,
+  `steeringWheelHeaterCapable` count alongside the `extendedCapabilities`
+  names, so a hybrid's engine start gets its channel.
+- **Trips:** `latestFuelEconomy` and `monthFuelEconomy` (l/100 km),
+  `todayFuel`, `latestEvDuration`, `monthEvDistance`, and the four parts of
+  the driving score (`latestScoreAcceleration`, `latestScoreBraking`,
+  `latestScoreConstantSpeed`, `latestScoreAdvice`).
+- **Service:** `lastNotes`, `lastOperations`, `lastDealer`.
+- **Plug-in hybrids:** `battery#usableLevel` (`phevUsableBatteryLevel`,
+  pytoyoda 5.2.9) and `battery#totalRange` (fuel range + EV range with A/C).
+- **Electric status route:** Toyota fenced `/v1/global/remote/electric/status`
+  behind SigV4 in September 2026; a 403 switches the handler to
+  `/v1/vehicle/electric/status` (pytoyoda 5.2.8) and logs it. The old route
+  still answers here, so it stays first.
+- From 2026-09-25, unreleased until now: the whole climate-status payload
+  (`climate#startedAt`, `remaining`, `cabinTemperature`, `targetTemperature`),
+  the car's own charging schedule and next charging event
+  (`battery#chargingSchedule`, `nextChargingEvent`), the location record's
+  refresh time (`location#reportedAt`), and a filter for the 65535 sentinel in
+  `remainingChargeTime` while not charging.
+- Housekeeping: a raw NUL byte sat in `MyToyotaVehicleHandler.java` (a `"\0"`
+  sentinel); it compiled, but `file` called the source data and grep skipped
+  the file. Written as `"\u0000"` now.
+
 ## 1.7.1 — 2026-09-22
 
 Command channels that mirror the car (lock, trunk, hazard, climate, engine,

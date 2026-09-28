@@ -101,6 +101,14 @@
 			<channel id="nextChargingEvent" typeId="next-charging-event"/>
 			<channel id="charging" typeId="charging"/>
 			<channel id="remainingChargeTime" typeId="remaining-charge-time"/>
+			<channel id="usableLevel" typeId="battery-level">
+				<label>Usable Battery Level</label>
+				<description>Plug-in hybrids: the part of the battery usable for EV driving, %. UNDEF on other cars.</description>
+			</channel>
+			<channel id="totalRange" typeId="range">
+				<label>Total Range</label>
+				<description>Plug-in hybrids: fuel range plus EV range with A/C, as the app adds them. UNDEF on other cars.</description>
+			</channel>
 			<channel id="lastUpdate" typeId="timestamp">
 				<label>Battery Reported</label>
 			</channel>
@@ -133,11 +141,20 @@
 			<channel id="latestAverageSpeed" typeId="trip-speed"/>
 			<channel id="latestFuel" typeId="trip-fuel"><label>Latest Trip Fuel</label></channel>
 			<channel id="latestEvDistance" typeId="trip-distance"><label>Latest Trip EV Distance</label></channel>
+			<channel id="latestFuelEconomy" typeId="fuel-economy"><label>Latest Trip Consumption</label></channel>
+			<channel id="latestEvDuration" typeId="trip-duration"><label>Latest Trip EV Time</label></channel>
 			<channel id="latestScore" typeId="trip-score"/>
+			<channel id="latestScoreAcceleration" typeId="trip-score"><label>Latest Trip Acceleration Score</label></channel>
+			<channel id="latestScoreBraking" typeId="trip-score"><label>Latest Trip Braking Score</label></channel>
+			<channel id="latestScoreAdvice" typeId="trip-score"><label>Latest Trip Advice Score</label></channel>
+			<channel id="latestScoreConstantSpeed" typeId="trip-score"><label>Latest Trip Constant Speed Score</label></channel>
 			<channel id="todayDistance" typeId="trip-distance"><label>Today Distance</label></channel>
+			<channel id="todayFuel" typeId="trip-fuel"><label>Today Fuel</label></channel>
 			<channel id="monthDistance" typeId="trip-distance"><label>This Month Distance</label></channel>
 			<channel id="monthDuration" typeId="trip-duration"><label>This Month Driving Time</label></channel>
 			<channel id="monthFuel" typeId="trip-fuel"><label>This Month Fuel</label></channel>
+			<channel id="monthFuelEconomy" typeId="fuel-economy"><label>This Month Consumption</label></channel>
+			<channel id="monthEvDistance" typeId="trip-distance"><label>This Month EV Distance</label></channel>
 			<channel id="count30Days" typeId="trip-count"/>
 			<channel id="latestStartPosition" typeId="trip-position"><label>Latest Trip Start Position</label></channel>
 			<channel id="latestEndPosition" typeId="trip-position"><label>Latest Trip End Position</label></channel>
@@ -155,6 +172,9 @@
 			<channel id="lastCategory" typeId="service-text"><label>Last Service</label></channel>
 			<channel id="lastProvider" typeId="service-text"><label>Last Service Provider</label></channel>
 			<channel id="lastMileage" typeId="odometer"><label>Odometer At Last Service</label></channel>
+			<channel id="lastNotes" typeId="service-text"><label>Last Service Notes</label></channel>
+			<channel id="lastOperations" typeId="service-text"><label>Last Service Operations</label></channel>
+			<channel id="lastDealer" typeId="service-text"><label>Last Service Dealer</label></channel>
 		</channels>
 	</channel-group-type>
 
@@ -657,6 +677,13 @@
 		<label>Latest Trip Score</label>
 		<description>Toyota's driving score for the trip, 0 to 100.</description>
 		<state readOnly="true" pattern="%d"/>
+	</channel-type>
+	<channel-type id="fuel-economy">
+		<item-type>Number</item-type>
+		<label>Fuel Consumption</label>
+		<description>Litres per 100 km, from the fuel used and the distance driven in the period; UNDEF on a battery EV and
+			under 100 m of driving.</description>
+		<state readOnly="true" pattern="%.1f l/100km"/>
 	</channel-type>
 
 	<channel-type id="trip-count">

@@ -24,7 +24,19 @@ public class MyToyotaApiException extends Exception {
 
     private static final long serialVersionUID = 1L;
 
+    /** The HTTP status that caused this, or 0 when there was none (no response, interrupted, login). */
+    private final int statusCode;
+
     public MyToyotaApiException(String message) {
+        this(message, 0);
+    }
+
+    public MyToyotaApiException(String message, int statusCode) {
         super(message);
+        this.statusCode = statusCode;
+    }
+
+    public int getStatusCode() {
+        return statusCode;
     }
 }

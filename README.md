@@ -47,6 +47,7 @@ older JAR, remove it first.
 
 | release | file | sha256 |
 |---|---|---|
+| 1.8.0 | `org.openhab.binding.mytoyota-1.8.0.jar` | `609a013f3a22fcedf575f834958e53234bac5293a30cacc668e42b650eca5d1c` |
 | 1.7.1 | `org.openhab.binding.mytoyota-1.7.1.jar` | `f6c8dd35776e5aafa98bd7c3ce515d427a5be96a408ead2af4ba75c450d7cd35` |
 | 1.7.0 | `org.openhab.binding.mytoyota-1.7.0.jar` | `76bc51ef7f6a485c9e175e1dc2f129af7012c2b10f9c875ceabaf13ef4738736` |
 
@@ -76,9 +77,29 @@ older JAR, remove it first.
 | `vin` | yes | the 17-character VIN, filled in by discovery |
 
 The vehicle thing carries properties from the account's vehicle list: model,
-model year, nickname, generation, EV flag and `capabilities`, the flags the car
+model year, nickname, generation, `evVehicle`, `fuelType` (Toyota's code: `B`
+full hybrid, `E` electric, `I` plug-in hybrid, anything else fuel only),
+`vehicleType` (the same in words) and `capabilities`, the true flags the car
 reports (`doorLockUnlockCapable, climateCapable, …`). The capability channels
-below are created from those flags.
+below are created from those flags. Since 1.8.0 the properties are written by
+the binding itself on the first poll, so a thing defined in a `.things` file
+shows them too; before that only a discovered thing had them.
+
+### Combustion and hybrid cars
+
+A car without a traction battery (a petrol or diesel Toyota, or a full hybrid
+such as a Corolla or Yaris hybrid) is not asked for its battery: the electric
+status read is skipped when the vehicle list says the car is not electric
+(`vehicleType` fuel-only or full hybrid), and the `battery` channels stay UNDEF.
+What such a car gets is everything else - odometer, fuel level and distance to
+empty, trips with fuel used and consumption in l/100 km, service history,
+location, doors, windows, lights, warnings, notifications and the commands it
+reports it can do (engine start on hybrids that have it). Until 1.8.0 the
+electric read was made for every car and its failure ended the whole poll, which
+left a fuel car OFFLINE with all of that available behind it.
+
+A plug-in hybrid gets both halves, plus `battery#usableLevel` and
+`battery#totalRange`.
 
 ---
 
@@ -98,7 +119,11 @@ their state is stored in the unit you expect.
 | `battery#chargingStatus` | String | `none`, `charging`, `chargeComplete`, … as the car says it |
 | `battery#charging` | Switch | ON while the status contains "charging" |
 | `battery#remainingChargeTime` | Number:Time | minutes to full while charging, else UNDEF |
+| `battery#usableLevel` | Number:Dimensionless | plug-in hybrids: the part of the battery usable for EV driving, %; UNDEF otherwise |
+| `battery#totalRange` | Number:Length | plug-in hybrids: fuel range plus EV range with A/C, as the app adds them; UNDEF otherwise |
 | `battery#lastUpdate` | DateTime | when the car reported these values |
+
+Not polled on a fuel-only or full-hybrid car (see above); all UNDEF there.
 
 ### telemetry
 
@@ -121,13 +146,18 @@ cloud keeps about 12 months.
 | `trips#latestDuration` | Number:Time | |
 | `trips#latestAverageSpeed` | Number:Speed | |
 | `trips#latestFuel` | Number:Volume | litres; UNDEF on an EV |
+| `trips#latestFuelEconomy` | Number | l/100 km for the trip, from fuel used and distance; UNDEF on an EV |
 | `trips#latestEvDistance` | Number:Length | driven electrically |
+| `trips#latestEvDuration` | Number:Time | time driven electrically (hybrids: the engine-off share) |
 | `trips#latestScore` | Number | Toyota's driving score, 0–100 |
+| `trips#latestScoreAcceleration`, `latestScoreBraking`, `latestScoreConstantSpeed`, `latestScoreAdvice` | Number | the four parts behind the score, as the app shows them |
 | `trips#latestStartPosition`, `latestEndPosition` | Location | |
 | `trips#latestRoute` | String | the route as `lat,lon,flags;…` (five decimals; flags `e` electric, `h` highway, `o` over the limit). For a map; do not persist |
 | `trips#latestId` | String | the cloud's trip id |
-| `trips#todayDistance` | Number:Length | today's total |
+| `trips#todayDistance`, `todayFuel` | Number:Length, Number:Volume | today's totals |
 | `trips#monthDistance`, `monthDuration`, `monthFuel` | | this month's totals |
+| `trips#monthFuelEconomy` | Number | this month's l/100 km |
+| `trips#monthEvDistance` | Number:Length | this month driven electrically |
 | `trips#count30Days` | Number | trips in the last 30 days |
 | `trips#lastUpdate` | DateTime | when the history was read |
 
@@ -137,7 +167,9 @@ cloud keeps about 12 months.
 |---|---|---|
 | `service#count` | Number | service records the cloud holds |
 | `service#lastDate` | DateTime | newest record |
-| `service#lastCategory`, `lastProvider` | String | |
+| `service#lastCategory`, `lastProvider`, `lastDealer` | String | |
+| `service#lastNotes` | String | the record's notes, when the dealer wrote any |
+| `service#lastOperations` | String | what was done, one line, `; ` separated |
 | `service#lastMileage` | Number:Length | odometer at that service |
 
 ### location
@@ -264,8 +296,10 @@ refresh every minute. Remote commands wake the car as well.
 
 Every command pytoyoda knows is in the binding, but a car only gets the
 channels it reports it can use: on the first poll the binding reads the
-account's vehicle list (`extendedCapabilities`) and creates the matching
-command channels on the thing. A bZ4X gets trunk lock, buzzer, defrost, seat
+account's vehicle list (`extendedCapabilities` and `remoteServiceCapabilities`,
+which spell the same abilities two ways - `remoteEngineStartStop` and
+`estartStopCapable`, `lightsCapable` and `headLightCapable`, and so on; either
+counts) and creates the matching command channels on the thing. A bZ4X gets trunk lock, buzzer, defrost, seat
 and steering wheel heaters; a hybrid also gets engine start and stop; nobody
 gets channels for things their car cannot do. The `capabilities` property on
 the thing lists the flags.
@@ -357,6 +391,11 @@ different colours. Copy it to openHAB's `html/` folder and embed it with
 | unlock, hazard, horn, find, climate start/stop and options, charge now, buzzer | same request shape as the app; not yet exercised on a car |
 | Lexus, Subaru | same service, different realm; untested |
 
+| | Toyota RAV4 plug-in hybrid 2025 (forum report, 2026-09-23) |
+|---|---|
+| reads | reported working on 1.7.1 |
+| properties, capabilities | empty on 1.7.1 for a thing from a `.things` file - the reason for 1.8.0's property write; not yet confirmed on that car |
+
 Please report what works on your model, with the `capabilities` property.
 
 ---
@@ -379,6 +418,18 @@ Logs: `log:set DEBUG org.openhab.binding.mytoyota` in the console. Remote
 commands and notifications are logged at INFO.
 
 ---
+
+**A fuel or hybrid car stood OFFLINE with "electric status … failed"** before
+1.8.0: the battery read was made for every car and its failure ended the poll.
+Since 1.8.0 each read stands on its own, the battery is only asked of electric
+cars, and a read that fails three times in a row is retried hourly and said so
+once in the log (INFO). The thing goes OFFLINE only when every read of a poll
+failed.
+
+**`electric status … failed: 403`** - Toyota moved the electric read in
+September 2026 (`/v1/global/remote/electric/status` → `/v1/vehicle/electric/status`,
+pytoyoda 5.2.8). The binding switches to the new route on the first 403 and
+logs that it did.
 
 ## Privacy
 

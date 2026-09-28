@@ -36,6 +36,9 @@ public class MyToyotaBindingConstants {
     public static final String CHANNEL_BATTERY_CHARGING_ACTIVE = "battery#charging";
     public static final String CHANNEL_BATTERY_REMAINING_TIME = "battery#remainingChargeTime";
     public static final String CHANNEL_BATTERY_TIMESTAMP = "battery#lastUpdate";
+    // plug-in hybrids: the part of the battery usable for EV driving, and fuel + EV range together
+    public static final String CHANNEL_BATTERY_USABLE_LEVEL = "battery#usableLevel";
+    public static final String CHANNEL_BATTERY_TOTAL_RANGE = "battery#totalRange";
 
     // telemetry
     public static final String CHANNEL_TELEMETRY_ODOMETER = "telemetry#odometer";
@@ -63,6 +66,17 @@ public class MyToyotaBindingConstants {
     public static final String CHANNEL_TRIPS_LATEST_END_POS = "trips#latestEndPosition";
     public static final String CHANNEL_TRIPS_LATEST_ROUTE = "trips#latestRoute";
     public static final String CHANNEL_TRIPS_LATEST_ID = "trips#latestId";
+    // what pytoyoda derives from the same payload and this did not (1.8.0): consumption, the hybrid
+    // drive-mode split and the four parts of the driving score
+    public static final String CHANNEL_TRIPS_LATEST_FUEL_ECONOMY = "trips#latestFuelEconomy";
+    public static final String CHANNEL_TRIPS_LATEST_EV_DURATION = "trips#latestEvDuration";
+    public static final String CHANNEL_TRIPS_LATEST_SCORE_ACCELERATION = "trips#latestScoreAcceleration";
+    public static final String CHANNEL_TRIPS_LATEST_SCORE_BRAKING = "trips#latestScoreBraking";
+    public static final String CHANNEL_TRIPS_LATEST_SCORE_ADVICE = "trips#latestScoreAdvice";
+    public static final String CHANNEL_TRIPS_LATEST_SCORE_CONSTANT_SPEED = "trips#latestScoreConstantSpeed";
+    public static final String CHANNEL_TRIPS_TODAY_FUEL = "trips#todayFuel";
+    public static final String CHANNEL_TRIPS_MONTH_FUEL_ECONOMY = "trips#monthFuelEconomy";
+    public static final String CHANNEL_TRIPS_MONTH_EV_DISTANCE = "trips#monthEvDistance";
 
     // service history
     public static final String CHANNEL_SERVICE_COUNT = "service#count";
@@ -70,6 +84,9 @@ public class MyToyotaBindingConstants {
     public static final String CHANNEL_SERVICE_LAST_CATEGORY = "service#lastCategory";
     public static final String CHANNEL_SERVICE_LAST_PROVIDER = "service#lastProvider";
     public static final String CHANNEL_SERVICE_LAST_MILEAGE = "service#lastMileage";
+    public static final String CHANNEL_SERVICE_LAST_NOTES = "service#lastNotes";
+    public static final String CHANNEL_SERVICE_LAST_OPERATIONS = "service#lastOperations";
+    public static final String CHANNEL_SERVICE_LAST_DEALER = "service#lastDealer";
 
     // location
     public static final String CHANNEL_LOCATION_POSITION = "location#position";
@@ -130,16 +147,16 @@ public class MyToyotaBindingConstants {
     // optional command channels, created per vehicle from its extendedCapabilities (see
     // MyToyotaVehicleHandler.provisionOptionalChannels): id, channel type, item type, capability keys (any true)
     public static final String[][] OPTIONAL_CHANNELS = {
-            { "control#trunkLock", "trunk-lock", "Switch", "trunkLockUnlockCapable" },
+            { "control#trunkLock", "trunk-lock", "Switch", "trunkLockUnlockCapable", "trunkCapable" },
             { "control#buzzer", "trigger-command", "Switch", "buzzerCapable" },
-            { "control#engine", "engine", "Switch", "remoteEngineStartStop" },
-            { "control#headlights", "headlights", "Switch", "lightsCapable" },
-            { "control#windowsOpen", "trigger-command", "Switch", "windowsOpenCapable" },
-            { "control#windowsClose", "trigger-command", "Switch", "windowsCloseCapable" },
+            { "control#engine", "engine", "Switch", "remoteEngineStartStop", "estartStopCapable", "estartEnabled" },
+            { "control#headlights", "headlights", "Switch", "lightsCapable", "headLightCapable" },
+            { "control#windowsOpen", "trigger-command", "Switch", "windowsOpenCapable", "powerWindowCapable" },
+            { "control#windowsClose", "trigger-command", "Switch", "windowsCloseCapable", "powerWindowCapable" },
             { "control#ventilation", "trigger-command", "Switch", "ventilatorCapable" },
             { "control#defrostFront", "climate-option", "Switch", "frontDefogger" },
             { "control#defrostRear", "climate-option", "Switch", "rearDefogger" },
-            { "control#steeringHeater", "climate-option", "Switch", "steeringHeater" },
+            { "control#steeringHeater", "climate-option", "Switch", "steeringHeater", "steeringWheelHeaterCapable" },
             { "control#mirrorHeater", "climate-option", "Switch", "mirrorHeater" },
             { "control#seatHeaterDriver", "climate-option", "Switch", "frontDriverSeatHeater" },
             { "control#seatHeaterPassenger", "climate-option", "Switch", "frontPassengerSeatHeater" },
@@ -175,6 +192,8 @@ public class MyToyotaBindingConstants {
     public static final String PROPERTY_NICKNAME = "nickName";
     public static final String PROPERTY_GENERATION = "generation";
     public static final String PROPERTY_EV = "evVehicle";
+    public static final String PROPERTY_FUEL_TYPE = "fuelType";
+    public static final String PROPERTY_VEHICLE_TYPE = "vehicleType";
     public static final String PROPERTY_CAPABILITIES = "capabilities";
 
     private MyToyotaBindingConstants() {

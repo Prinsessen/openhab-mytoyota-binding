@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
+import org.openhab.binding.mytoyota.internal.MyToyotaVehicleInfo;
 import org.openhab.binding.mytoyota.internal.api.MyToyotaApiClient;
 import org.openhab.binding.mytoyota.internal.api.MyToyotaApiException;
 import org.openhab.core.library.types.DateTimeType;
@@ -93,6 +94,18 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
     private int climateDuration = 20;
     private boolean climateSeeded;
     private boolean channelsProvisioned;
+    /** This car's entry in the account's vehicle list; null until read, empty when the car is not listed. */
+    private @Nullable JsonObject vehicleInfo;
+    /** False for a full hybrid or a combustion car: there is no traction battery the cloud reports on. */
+    private boolean electricCapable = true;
+    private String electricEndpoint = MyToyotaApiClient.ENDPOINT_ELECTRIC_STATUS;
+    private final Map<String, Integer> readFailures = new HashMap<>();
+    private final Map<String, Instant> readRetryAt = new HashMap<>();
+    private int pollAttempted;
+    private int pollOk;
+    private @Nullable String lastReadError;
+    private static final int FAILURES_BEFORE_BACKOFF = 3;
+    private static final long FAILED_READ_RETRY_S = 3600;
     private Instant lastTripsFetch = Instant.EPOCH;
     private Instant lastServiceFetch = Instant.EPOCH;
     private String lastLocationStamp = "";
@@ -379,13 +392,26 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                     && Instant.now().isAfter(lastWake.plusSeconds(wakeMinutes * 60L))) {
                 wake(false);
             }
-            updateElectric(client.get(MyToyotaApiClient.ENDPOINT_ELECTRIC_STATUS, vin));
-            updateTelemetry(client.get(MyToyotaApiClient.ENDPOINT_TELEMETRY, vin));
-            updateLocation(client.get(MyToyotaApiClient.ENDPOINT_LOCATION, vin));
-            updateVehicleStatus(client.get(MyToyotaApiClient.ENDPOINT_VEHICLE_STATUS, vin));
-            updateClimate(client.get(MyToyotaApiClient.ENDPOINT_CLIMATE_STATUS, vin));
-            updateNotifications(client.get(MyToyotaApiClient.ENDPOINT_NOTIFICATIONS, vin));
-            updateHealth(client.get(MyToyotaApiClient.ENDPOINT_HEALTH, vin));
+            if (vehicleInfo == null) {
+                loadVehicleInfo(account);
+            }
+            // Every read on its own, so one endpoint a car does not have cannot take the rest of it
+            // offline. Until 1.8.0 the electric status was asked of every car and its failure ended
+            // the poll: a Yaris or a Corolla hybrid stood OFFLINE with odometer, fuel, trips and
+            // doors all available behind it. pytoyoda gates that read on the car being electric and
+            // treats a failure as optional; both are done here.
+            pollAttempted = 0;
+            pollOk = 0;
+            lastReadError = null;
+            if (electricCapable) {
+                read("electric status", () -> readElectric(client), this::updateElectric);
+            }
+            read("telemetry", () -> client.get(MyToyotaApiClient.ENDPOINT_TELEMETRY, vin), this::updateTelemetry);
+            read("location", () -> client.get(MyToyotaApiClient.ENDPOINT_LOCATION, vin), this::updateLocation);
+            read("vehicle status", () -> client.get(MyToyotaApiClient.ENDPOINT_VEHICLE_STATUS, vin), this::updateVehicleStatus);
+            read("climate status", () -> client.get(MyToyotaApiClient.ENDPOINT_CLIMATE_STATUS, vin), this::updateClimate);
+            read("notifications", () -> client.get(MyToyotaApiClient.ENDPOINT_NOTIFICATIONS, vin), this::updateNotifications);
+            read("health", () -> client.get(MyToyotaApiClient.ENDPOINT_HEALTH, vin), this::updateHealth);
             // trips: hourly, and right after the car parks (its position timestamp moves)
             String locStamp = String.valueOf(items(CHANNEL_LOCATION_TIMESTAMP));
             boolean parkedSince = !locStamp.equals(lastLocationStamp);
@@ -395,16 +421,17 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                 lastLocationStamp = locStamp;
             }
             if (Instant.now().isAfter(lastServiceFetch.plusSeconds(SERVICE_INTERVAL_S))) {
-                updateService(client.get(MyToyotaApiClient.ENDPOINT_SERVICE_HISTORY, vin));
+                read("service history", () -> client.get(MyToyotaApiClient.ENDPOINT_SERVICE_HISTORY, vin), this::updateService);
                 lastServiceFetch = Instant.now();
             }
-            if (!channelsProvisioned) {
-                provisionOptionalChannels(account);
-            }
             if (!climateSeeded) {
-                seedClimateSettings(client.get(MyToyotaApiClient.ENDPOINT_CLIMATE_SETTINGS, vin));
+                read("climate settings", () -> client.get(MyToyotaApiClient.ENDPOINT_CLIMATE_SETTINGS, vin), this::seedClimateSettings);
             }
             updateState(CHANNEL_CONTROL_LAST_POLL, new DateTimeType(ZonedDateTime.now()));
+            if (pollAttempted > 0 && pollOk == 0) {
+                String why = lastReadError;
+                throw new MyToyotaApiException(why == null ? "every read failed" : why);
+            }
             if (getThing().getStatus() != ThingStatus.ONLINE) {
                 updateStatus(ThingStatus.ONLINE);
                 restOneShotChannels();
@@ -417,6 +444,100 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         } catch (RuntimeException e) {
             logger.warn("Unexpected answer while polling {}: {}", shortVin(), e.toString());
         }
+    }
+
+    @FunctionalInterface
+    private interface ApiRead {
+        JsonObject get() throws MyToyotaApiException;
+    }
+
+    /**
+     * One endpoint of the poll. A failure is logged and counted, never thrown: the other reads go on,
+     * and the thing only goes offline when every read of a poll failed. After three failures in a row
+     * an endpoint is retried hourly instead of every poll - a car that lacks it will lack it tomorrow
+     * too, and the log should say so once, not every five minutes.
+     */
+    private boolean read(String name, ApiRead call, java.util.function.Consumer<JsonObject> apply) {
+        Instant retryAt = readRetryAt.get(name);
+        if (retryAt != null && Instant.now().isBefore(retryAt)) {
+            return false;                              // backed off, not attempted
+        }
+        pollAttempted++;
+        try {
+            apply.accept(call.get());
+            pollOk++;
+            if (readFailures.remove(name) != null) {
+                readRetryAt.remove(name);
+                logger.info("{} of {} answers again", name, shortVin());
+            }
+            return true;
+        } catch (MyToyotaApiException e) {
+            int n = readFailures.merge(name, 1, Integer::sum);
+            lastReadError = name + ": " + e.getMessage();
+            if (n >= FAILURES_BEFORE_BACKOFF) {
+                readRetryAt.put(name, Instant.now().plusSeconds(FAILED_READ_RETRY_S));
+            }
+            if (n == FAILURES_BEFORE_BACKOFF) {
+                logger.info("{} of {} failed {} times ({}); the rest of the car is polled as before, this is retried hourly",
+                        name, shortVin(), n, e.getMessage());
+            } else {
+                logger.debug("{} of {} failed: {}", name, shortVin(), e.getMessage());
+            }
+            return false;
+        }
+    }
+
+    /**
+     * The electric status, from the route that answers. Toyota fenced /v1/global/remote/electric/status
+     * behind AWS SigV4 in September 2026 and the app moved to /v1/vehicle/electric/status (pytoyoda
+     * 5.2.8); the global route still answers for the test car, so it is tried first and a 403 switches
+     * this handler to the new one for good.
+     */
+    private JsonObject readElectric(MyToyotaApiClient client) throws MyToyotaApiException {
+        try {
+            return client.get(electricEndpoint, vin);
+        } catch (MyToyotaApiException e) {
+            if (e.getStatusCode() == 403 && MyToyotaApiClient.ENDPOINT_ELECTRIC_STATUS.equals(electricEndpoint)) {
+                logger.info("Electric status of {} answered 403 on {}; using {} from now on", shortVin(),
+                        electricEndpoint, MyToyotaApiClient.ENDPOINT_ELECTRIC_STATUS_V2);
+                electricEndpoint = MyToyotaApiClient.ENDPOINT_ELECTRIC_STATUS_V2;
+                return client.get(electricEndpoint, vin);
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * What the account's vehicle list says about this car: its properties, whether it has a battery
+     * worth asking about, and which command channels it can use. Read once; a car that is not in the
+     * list is polled without any of it, and said so once.
+     *
+     * Until 1.8.0 the properties were written by discovery only, so a thing from a .things file showed
+     * nothing but "vendor: Toyota" - which is what the first forum report looked like.
+     */
+    private void loadVehicleInfo(MyToyotaAccountHandler account) {
+        JsonObject vehicle;
+        try {
+            vehicle = account.findVehicle(vin);
+        } catch (MyToyotaApiException e) {
+            logger.debug("Could not read the vehicle list for {}: {}", shortVin(), e.getMessage());
+            return;                                    // try again next poll
+        }
+        if (vehicle == null) {
+            logger.info("{} is not in the account's vehicle list; polled without capabilities", shortVin());
+            vehicleInfo = new JsonObject();
+            channelsProvisioned = true;
+            return;
+        }
+        vehicleInfo = vehicle;
+        electricCapable = MyToyotaVehicleInfo.electricCapable(vehicle);
+        Map<String, String> props = editProperties();
+        props.putAll(MyToyotaVehicleInfo.properties(vehicle));
+        updateProperties(props);
+        logger.info("{} is a {} {} ({}); electric status {}", shortVin(), MyToyotaVehicleInfo.text(vehicle, "modelName"),
+                MyToyotaVehicleInfo.text(vehicle, "modelYear"), MyToyotaVehicleInfo.vehicleType(vehicle),
+                electricCapable ? "is polled" : "is not polled - no traction battery the cloud reports on");
+        provisionOptionalChannels(vehicle);
     }
 
     /** Asks the car for a fresh state of charge (and, if full, for fresh door/window state). */
@@ -463,6 +584,9 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         updateState(CHANNEL_BATTERY_CHARGING_ACTIVE, OnOffType.from(charging));
         updateState(CHANNEL_BATTERY_REMAINING_TIME, remainingChargeTime(p));
         updateState(CHANNEL_BATTERY_TIMESTAMP, dateTime(string(p, "lastUpdateTimestamp")));
+        // plug-in hybrids: the usable part of the battery (pytoyoda 5.2.9) and fuel + EV range together
+        updateState(CHANNEL_BATTERY_USABLE_LEVEL, quantity(p.get("phevUsableBatteryLevel"), Units.PERCENT));
+        updateState(CHANNEL_BATTERY_TOTAL_RANGE, totalRange(p));
         // The payload carries more than this in some states - charging schedules and the
         // car's own next charging event among them - and none of it has been seen from the
         // car here yet, because the one capture was taken while it stood idle. Logged whole
@@ -796,7 +920,7 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         int colon = text.indexOf(':');
         if (colon > 0 && colon < 40) {
             String prefix = text.substring(0, colon).trim();
-            if (prefix.equalsIgnoreCase(vin) || prefix.equalsIgnoreCase(getThing().getProperties().getOrDefault(PROPERTY_NICKNAME, " "))
+            if (prefix.equalsIgnoreCase(vin) || prefix.equalsIgnoreCase(getThing().getProperties().getOrDefault(PROPERTY_NICKNAME, "\u0000"))
                     || !prefix.contains(" ") && prefix.length() == 17) {
                 text = text.substring(colon + 1).trim();
             } else if (prefix.matches("[A-Za-z0-9 '\\-]{2,30}") && text.length() > colon + 2) {
@@ -887,11 +1011,16 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             updateState(CHANNEL_TRIPS_LATEST_DURATION, seconds(sum == null ? null : sum.get("duration")));
             updateState(CHANNEL_TRIPS_LATEST_SPEED, quantity(sum == null ? null : sum.get("averageSpeed"), SIUnits.KILOMETRE_PER_HOUR));
             updateState(CHANNEL_TRIPS_LATEST_FUEL, millilitres(sum == null ? null : sum.get("fuelConsumption")));
+            updateState(CHANNEL_TRIPS_LATEST_FUEL_ECONOMY, fuelEconomy(sum));
             JsonObject hdc = object(trip, "hdc");
             updateState(CHANNEL_TRIPS_LATEST_EV_DISTANCE, metres(hdc == null ? null : hdc.get("evDistance")));
+            updateState(CHANNEL_TRIPS_LATEST_EV_DURATION, seconds(hdc == null ? null : hdc.get("evTime")));
             JsonObject scores = object(trip, "scores");
-            Double score = scores == null ? null : number(scores.get("global"));
-            updateState(CHANNEL_TRIPS_LATEST_SCORE, score == null ? UnDefType.UNDEF : new DecimalType(score.intValue()));
+            updateState(CHANNEL_TRIPS_LATEST_SCORE, score(scores, "global"));
+            updateState(CHANNEL_TRIPS_LATEST_SCORE_ACCELERATION, score(scores, "acceleration"));
+            updateState(CHANNEL_TRIPS_LATEST_SCORE_BRAKING, score(scores, "braking"));
+            updateState(CHANNEL_TRIPS_LATEST_SCORE_ADVICE, score(scores, "advice"));
+            updateState(CHANNEL_TRIPS_LATEST_SCORE_CONSTANT_SPEED, score(scores, "constantSpeed"));
             updateState(CHANNEL_TRIPS_LATEST_START_POS, point(sum, "startLat", "startLon"));
             updateState(CHANNEL_TRIPS_LATEST_END_POS, point(sum, "endLat", "endLon"));
             String tripId = string(trip, "id");
@@ -901,6 +1030,7 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         // month and day summaries
         JsonElement sumsEl = p.get("summary");
         State monthDist = UnDefType.UNDEF, monthDur = UnDefType.UNDEF, monthFuel = UnDefType.UNDEF, todayDist = UnDefType.UNDEF;
+        State monthEconomy = UnDefType.UNDEF, monthEv = UnDefType.UNDEF, todayFuel = UnDefType.UNDEF;
         if (sumsEl != null && sumsEl.isJsonArray()) {
             for (JsonElement el : sumsEl.getAsJsonArray()) {
                 if (!el.isJsonObject()) {
@@ -916,6 +1046,9 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                 monthDist = metres(ms == null ? null : ms.get("length"));
                 monthDur = seconds(ms == null ? null : ms.get("duration"));
                 monthFuel = millilitres(ms == null ? null : ms.get("fuelConsumption"));
+                monthEconomy = fuelEconomy(ms);
+                JsonObject mh = object(m, "hdc") != null ? object(m, "hdc") : object(ms, "hdc");
+                monthEv = metres(mh == null ? null : mh.get("evDistance"));
                 JsonElement hist = m.get("histograms");
                 if (hist != null && hist.isJsonArray()) {
                     for (JsonElement h : hist.getAsJsonArray()) {
@@ -926,6 +1059,7 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                         if (d != null && d.intValue() == now.getDayOfMonth()) {
                             JsonObject ds = object(h.getAsJsonObject(), "summary");
                             todayDist = metres(ds == null ? null : ds.get("length"));
+                            todayFuel = millilitres(ds == null ? null : ds.get("fuelConsumption"));
                         }
                     }
                 }
@@ -935,6 +1069,9 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         updateState(CHANNEL_TRIPS_MONTH_DURATION, monthDur);
         updateState(CHANNEL_TRIPS_MONTH_FUEL, monthFuel);
         updateState(CHANNEL_TRIPS_TODAY_DISTANCE, todayDist);
+        updateState(CHANNEL_TRIPS_MONTH_FUEL_ECONOMY, monthEconomy);
+        updateState(CHANNEL_TRIPS_MONTH_EV_DISTANCE, monthEv);
+        updateState(CHANNEL_TRIPS_TODAY_FUEL, todayFuel);
         updateState(CHANNEL_TRIPS_TIMESTAMP, new DateTimeType(now));
     }
 
@@ -963,6 +1100,9 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             updateState(CHANNEL_SERVICE_LAST_CATEGORY, new StringType("none"));
             updateState(CHANNEL_SERVICE_LAST_PROVIDER, UnDefType.UNDEF);
             updateState(CHANNEL_SERVICE_LAST_MILEAGE, UnDefType.UNDEF);
+            updateState(CHANNEL_SERVICE_LAST_NOTES, UnDefType.UNDEF);
+            updateState(CHANNEL_SERVICE_LAST_OPERATIONS, UnDefType.UNDEF);
+            updateState(CHANNEL_SERVICE_LAST_DEALER, UnDefType.UNDEF);
             return;
         }
         try {
@@ -974,6 +1114,11 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         updateState(CHANNEL_SERVICE_LAST_CATEGORY, cat == null ? UnDefType.UNDEF : new StringType(cat));
         String prov = string(newest, "serviceProvider");
         updateState(CHANNEL_SERVICE_LAST_PROVIDER, prov == null ? UnDefType.UNDEF : new StringType(prov));
+        String notes = string(newest, "notes");
+        updateState(CHANNEL_SERVICE_LAST_NOTES, notes == null || notes.isBlank() ? UnDefType.UNDEF : new StringType(notes));
+        String dealer = string(newest, "servicingDealer");
+        updateState(CHANNEL_SERVICE_LAST_DEALER, dealer == null || dealer.isBlank() ? UnDefType.UNDEF : new StringType(dealer));
+        updateState(CHANNEL_SERVICE_LAST_OPERATIONS, joined(newest.get("operationsPerformed")));
         Double km = number(newest.get("mileage"));
         String unit = string(newest, "unit");
         updateState(CHANNEL_SERVICE_LAST_MILEAGE, km == null ? UnDefType.UNDEF
@@ -1041,6 +1186,70 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         return v == null ? UnDefType.UNDEF : new QuantityType<>(v / 1000.0, Units.LITRE);
     }
 
+    /**
+     * Litres per 100 km from a trip or period summary: fuelConsumption is in millilitres and length in
+     * metres, so their ratio is l/km, times a hundred. The figure a combustion or hybrid owner reads
+     * first; pytoyoda calls it average_fuel_consumed. No openHAB unit exists for it, so a plain
+     * number with two decimals. UNDEF without fuel data or under 100 m of driving.
+     */
+    private static State fuelEconomy(@Nullable JsonObject summary) {
+        Double fuel = summary == null ? null : number(summary.get("fuelConsumption"));
+        Double length = summary == null ? null : number(summary.get("length"));
+        if (fuel == null || length == null || length < 100) {
+            return UnDefType.UNDEF;
+        }
+        return new DecimalType(Math.round(fuel / length * 100 * 100) / 100.0);
+    }
+
+    /** One of Toyota's driving scores, 0-100, or UNDEF when the trip did not carry it. */
+    private static State score(@Nullable JsonObject scores, String key) {
+        Double v = scores == null ? null : number(scores.get(key));
+        return v == null ? UnDefType.UNDEF : new DecimalType(v.intValue());
+    }
+
+    /** A JSON array of strings (a service record's operations) as one line, or UNDEF. */
+    private static State joined(@Nullable JsonElement e) {
+        if (e == null || !e.isJsonArray() || e.getAsJsonArray().isEmpty()) {
+            return UnDefType.UNDEF;
+        }
+        List<String> parts = new ArrayList<>();
+        for (JsonElement el : e.getAsJsonArray()) {
+            if (el.isJsonPrimitive()) {
+                parts.add(el.getAsString());
+            } else if (el.isJsonObject()) {
+                String name = string(el.getAsJsonObject(), "name");
+                parts.add(name == null ? el.toString() : name);
+            }
+        }
+        return parts.isEmpty() ? UnDefType.UNDEF : new StringType(String.join("; ", parts));
+    }
+
+    /** {"value":123,"unit":"km"} as kilometres, or null. */
+    private static @Nullable Double kilometres(@Nullable JsonElement e) {
+        if (e == null || !e.isJsonObject()) {
+            return null;
+        }
+        Double v = number(e.getAsJsonObject().get("value"));
+        if (v == null) {
+            return null;
+        }
+        return "mi".equalsIgnoreCase(string(e.getAsJsonObject(), "unit")) ? v * 1.609344 : v;
+    }
+
+    /**
+     * Fuel range plus EV range with A/C, the way pytoyoda's Dashboard.range adds them for a plug-in
+     * hybrid. UNDEF unless the payload carries a fuel range, so an EV and a combustion car show
+     * nothing here rather than a number that means something else.
+     */
+    private static State totalRange(JsonObject electric) {
+        Double fuel = kilometres(electric.get("fuelRange"));
+        if (fuel == null) {
+            return UnDefType.UNDEF;
+        }
+        Double ev = kilometres(electric.get("evRangeWithAc"));
+        return new QuantityType<>(fuel + (ev == null ? 0 : ev), MetricPrefix.KILO(SIUnits.METRE));
+    }
+
     private void putOption(JsonObject target, String apiKey, String channelId) {
         String v = climateOptions.get(channelId);
         if (v != null) {
@@ -1061,18 +1270,7 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
      * account's vehicle list (and a few remoteServiceCapabilities flags), and drops those it cannot.
      * A bZ4X gets trunk lock, buzzer and the climate options; a hybrid also gets engine start.
      */
-    private void provisionOptionalChannels(MyToyotaAccountHandler account) {
-        JsonObject vehicle;
-        try {
-            vehicle = account.findVehicle(vin);
-        } catch (MyToyotaApiException e) {
-            logger.debug("Could not read capabilities for {}: {}", shortVin(), e.getMessage());
-            return;
-        }
-        if (vehicle == null) {
-            channelsProvisioned = true;
-            return;
-        }
+    private void provisionOptionalChannels(JsonObject vehicle) {
         JsonObject ext = object(vehicle, "extendedCapabilities");
         JsonObject rsc = object(vehicle, "remoteServiceCapabilities");
         ThingBuilder builder = editThing();

@@ -17,9 +17,9 @@ import static org.openhab.binding.mytoyota.internal.MyToyotaBindingConstants.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.openhab.binding.mytoyota.internal.MyToyotaVehicleInfo;
 import org.openhab.binding.mytoyota.internal.api.MyToyotaApiException;
 import org.openhab.binding.mytoyota.internal.handler.MyToyotaAccountHandler;
 import org.openhab.core.config.discovery.AbstractThingHandlerDiscoveryService;
@@ -72,14 +72,7 @@ public class MyToyotaDiscoveryService extends AbstractThingHandlerDiscoveryServi
                 String nick = text(v, "nickName");
                 String label = (nick.isEmpty() ? model : nick + " (" + model + ")") + (year.isEmpty() ? "" : " " + year);
 
-                Map<String, Object> properties = new HashMap<>();
-                properties.put(PROPERTY_VIN, vin);
-                properties.put(PROPERTY_MODEL, model);
-                properties.put(PROPERTY_MODEL_YEAR, year);
-                properties.put(PROPERTY_NICKNAME, nick);
-                properties.put(PROPERTY_GENERATION, text(v, "generation"));
-                properties.put(PROPERTY_EV, text(v, "evVehicle"));
-                properties.put(PROPERTY_CAPABILITIES, capabilities(v));
+                Map<String, Object> properties = new HashMap<>(MyToyotaVehicleInfo.properties(v));
 
                 DiscoveryResult result = DiscoveryResultBuilder.create(new ThingUID(THING_TYPE_VEHICLE, bridgeUID, vin))
                         .withBridge(bridgeUID).withProperties(properties).withRepresentationProperty(PROPERTY_VIN)
@@ -94,19 +87,6 @@ public class MyToyotaDiscoveryService extends AbstractThingHandlerDiscoveryServi
     }
 
     private static String text(JsonObject o, String key) {
-        JsonElement e = o.get(key);
-        return e == null || e.isJsonNull() || !e.isJsonPrimitive() ? "" : e.getAsString();
-    }
-
-    /** The true flags of extendedCapabilities, comma separated, so the thing shows what the car can do. */
-    private static String capabilities(JsonObject v) {
-        JsonElement ext = v.get("extendedCapabilities");
-        if (ext == null || !ext.isJsonObject()) {
-            return "";
-        }
-        return ext.getAsJsonObject().entrySet().stream()
-                .filter(e -> e.getValue().isJsonPrimitive() && e.getValue().getAsJsonPrimitive().isBoolean()
-                        && e.getValue().getAsBoolean())
-                .map(Map.Entry::getKey).sorted().collect(Collectors.joining(", "));
+        return MyToyotaVehicleInfo.text(o, key);
     }
 }

@@ -10,6 +10,8 @@ Number:Length        Car_Range_AC         "Range with A/C [%.0f km]"         { c
 String               Car_Charging_Status  "Charging status [%s]"             { channel="mytoyota:vehicle:home:car:battery#chargingStatus" }
 Switch               Car_Charging         "Charging [%s]"                    { channel="mytoyota:vehicle:home:car:battery#charging" }
 Number:Time          Car_Remaining_Charge "Remaining charge time [%.0f min]" { channel="mytoyota:vehicle:home:car:battery#remainingChargeTime", unit="min" }
+Number:Dimensionless Car_Usable_SoC       "Usable battery (PHEV) [%.0f %%]"  { channel="mytoyota:vehicle:home:car:battery#usableLevel" }
+Number:Length        Car_Total_Range      "Total range (PHEV) [%.0f km]"     { channel="mytoyota:vehicle:home:car:battery#totalRange", unit="km" }
 DateTime             Car_Battery_At       "Battery reported [%1$td/%1$tm %1$tR]" { channel="mytoyota:vehicle:home:car:battery#lastUpdate" }
 
 // Telemetry
@@ -24,16 +26,25 @@ Number:Length        Car_Trip_Distance    "Latest trip [%.1f km]"            { c
 Number:Time          Car_Trip_Duration    "Latest trip duration [%.0f min]"  { channel="mytoyota:vehicle:home:car:trips#latestDuration", unit="min" }
 Number:Speed         Car_Trip_Speed       "Latest trip average [%.0f km/h]"  { channel="mytoyota:vehicle:home:car:trips#latestAverageSpeed", unit="km/h" }
 Number:Volume        Car_Trip_Fuel        "Latest trip fuel [%.2f l]"        { channel="mytoyota:vehicle:home:car:trips#latestFuel", unit="l" }
+Number               Car_Trip_Economy     "Latest trip [%.1f l/100km]"       { channel="mytoyota:vehicle:home:car:trips#latestFuelEconomy" }
 Number:Length        Car_Trip_EV          "Latest trip electric [%.1f km]"   { channel="mytoyota:vehicle:home:car:trips#latestEvDistance", unit="km" }
+Number:Time          Car_Trip_EV_Time     "Latest trip electric [%.0f min]"  { channel="mytoyota:vehicle:home:car:trips#latestEvDuration", unit="min" }
 Number               Car_Trip_Score       "Latest trip score [%d]"           { channel="mytoyota:vehicle:home:car:trips#latestScore" }
+Number               Car_Trip_Score_Accel "Acceleration score [%d]"          { channel="mytoyota:vehicle:home:car:trips#latestScoreAcceleration" }
+Number               Car_Trip_Score_Brake "Braking score [%d]"               { channel="mytoyota:vehicle:home:car:trips#latestScoreBraking" }
+Number               Car_Trip_Score_Speed "Constant speed score [%d]"        { channel="mytoyota:vehicle:home:car:trips#latestScoreConstantSpeed" }
+Number               Car_Trip_Score_Advice "Advice score [%d]"               { channel="mytoyota:vehicle:home:car:trips#latestScoreAdvice" }
 Location             Car_Trip_From        "Latest trip from"                 { channel="mytoyota:vehicle:home:car:trips#latestStartPosition" }
 Location             Car_Trip_To          "Latest trip to"                   { channel="mytoyota:vehicle:home:car:trips#latestEndPosition" }
 String               Car_Trip_Route       "Latest trip route"                { channel="mytoyota:vehicle:home:car:trips#latestRoute" }
 String               Car_Trip_Id          "Latest trip id [%s]"              { channel="mytoyota:vehicle:home:car:trips#latestId" }
 Number:Length        Car_Trips_Today      "Today [%.1f km]"                  { channel="mytoyota:vehicle:home:car:trips#todayDistance", unit="km" }
+Number:Volume        Car_Trips_Today_Fuel "Today fuel [%.1f l]"              { channel="mytoyota:vehicle:home:car:trips#todayFuel" }
 Number:Length        Car_Trips_Month      "This month [%.0f km]"             { channel="mytoyota:vehicle:home:car:trips#monthDistance", unit="km" }
 Number:Time          Car_Trips_Month_Time "This month driving [%.0f min]"    { channel="mytoyota:vehicle:home:car:trips#monthDuration", unit="min" }
 Number:Volume        Car_Trips_Month_Fuel "This month fuel [%.1f l]"         { channel="mytoyota:vehicle:home:car:trips#monthFuel", unit="l" }
+Number               Car_Trips_Month_Econ "This month [%.1f l/100km]"        { channel="mytoyota:vehicle:home:car:trips#monthFuelEconomy" }
+Number:Length        Car_Trips_Month_EV   "This month electric [%.0f km]"    { channel="mytoyota:vehicle:home:car:trips#monthEvDistance", unit="km" }
 Number               Car_Trips_30d        "Trips in 30 days [%d]"            { channel="mytoyota:vehicle:home:car:trips#count30Days" }
 DateTime             Car_Trips_Read       "Trips read [%1$td/%1$tm %1$tR]"   { channel="mytoyota:vehicle:home:car:trips#lastUpdate" }
 
@@ -43,6 +54,9 @@ DateTime             Car_Service_Date     "Last service [%1$td/%1$tm/%1$tY]" { c
 String               Car_Service_Last     "Last service [%s]"                { channel="mytoyota:vehicle:home:car:service#lastCategory" }
 String               Car_Service_Provider "Service provider [%s]"            { channel="mytoyota:vehicle:home:car:service#lastProvider" }
 Number:Length        Car_Service_Mileage  "Odometer at last service [%.0f km]" { channel="mytoyota:vehicle:home:car:service#lastMileage", unit="km" }
+String               Car_Service_Notes    "Last service notes [%s]"          { channel="mytoyota:vehicle:home:car:service#lastNotes" }
+String               Car_Service_Work     "Last service work [%s]"           { channel="mytoyota:vehicle:home:car:service#lastOperations" }
+String               Car_Service_Dealer   "Last service dealer [%s]"         { channel="mytoyota:vehicle:home:car:service#lastDealer" }
 
 // Location
 Location             Car_Position         "Parked at"                        { channel="mytoyota:vehicle:home:car:location#position" }
