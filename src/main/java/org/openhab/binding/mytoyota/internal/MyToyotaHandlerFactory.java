@@ -26,7 +26,9 @@ import org.openhab.core.thing.ThingTypeUID;
 import org.openhab.core.thing.binding.BaseThingHandlerFactory;
 import org.openhab.core.thing.binding.ThingHandler;
 import org.openhab.core.thing.binding.ThingHandlerFactory;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 
 /**
  * Creates the account bridge and vehicle handlers.
@@ -38,6 +40,13 @@ import org.osgi.service.component.annotations.Component;
 public class MyToyotaHandlerFactory extends BaseThingHandlerFactory {
 
     private static final Set<ThingTypeUID> SUPPORTED = Set.of(THING_TYPE_ACCOUNT, THING_TYPE_VEHICLE);
+
+    private final MyToyotaStateDescriptionProvider stateDescriptionProvider;
+
+    @Activate
+    public MyToyotaHandlerFactory(final @Reference MyToyotaStateDescriptionProvider stateDescriptionProvider) {
+        this.stateDescriptionProvider = stateDescriptionProvider;
+    }
 
     @Override
     public boolean supportsThingType(ThingTypeUID thingTypeUID) {
@@ -51,7 +60,7 @@ public class MyToyotaHandlerFactory extends BaseThingHandlerFactory {
             return new MyToyotaAccountHandler((Bridge) thing);
         }
         if (THING_TYPE_VEHICLE.equals(type)) {
-            return new MyToyotaVehicleHandler(thing);
+            return new MyToyotaVehicleHandler(thing, stateDescriptionProvider);
         }
         return null;
     }

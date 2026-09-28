@@ -77,6 +77,22 @@ public class MyToyotaBindingConstants {
     public static final String CHANNEL_TRIPS_TODAY_FUEL = "trips#todayFuel";
     public static final String CHANNEL_TRIPS_MONTH_FUEL_ECONOMY = "trips#monthFuelEconomy";
     public static final String CHANNEL_TRIPS_MONTH_EV_DISTANCE = "trips#monthEvDistance";
+    // the recent trips as a list, and one of them picked out with its route (1.9.0)
+    public static final String CHANNEL_TRIPS_RECENT = "trips#recent";
+    public static final String CHANNEL_TRIPS_SELECT = "trips#select";
+    public static final String CHANNEL_TRIPS_SELECTED_START = "trips#selectedStart";
+    public static final String CHANNEL_TRIPS_SELECTED_END = "trips#selectedEnd";
+    public static final String CHANNEL_TRIPS_SELECTED_DISTANCE = "trips#selectedDistance";
+    public static final String CHANNEL_TRIPS_SELECTED_DURATION = "trips#selectedDuration";
+    public static final String CHANNEL_TRIPS_SELECTED_SPEED = "trips#selectedAverageSpeed";
+    public static final String CHANNEL_TRIPS_SELECTED_FUEL = "trips#selectedFuel";
+    public static final String CHANNEL_TRIPS_SELECTED_FUEL_ECONOMY = "trips#selectedFuelEconomy";
+    public static final String CHANNEL_TRIPS_SELECTED_EV_DISTANCE = "trips#selectedEvDistance";
+    public static final String CHANNEL_TRIPS_SELECTED_SCORE = "trips#selectedScore";
+    public static final String CHANNEL_TRIPS_SELECTED_START_POS = "trips#selectedStartPosition";
+    public static final String CHANNEL_TRIPS_SELECTED_END_POS = "trips#selectedEndPosition";
+    public static final String CHANNEL_TRIPS_SELECTED_ROUTE = "trips#selectedRoute";
+    public static final String CHANNEL_TRIPS_SELECTED_ID = "trips#selectedId";
 
     // service history
     public static final String CHANNEL_SERVICE_COUNT = "service#count";

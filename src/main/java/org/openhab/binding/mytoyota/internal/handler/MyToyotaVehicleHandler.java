@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
+import org.openhab.binding.mytoyota.internal.MyToyotaStateDescriptionProvider;
 import org.openhab.binding.mytoyota.internal.MyToyotaVehicleInfo;
 import org.openhab.binding.mytoyota.internal.api.MyToyotaApiClient;
 import org.openhab.binding.mytoyota.internal.api.MyToyotaApiException;
@@ -55,6 +56,7 @@ import java.util.List;
 import org.openhab.core.types.Command;
 import org.openhab.core.types.RefreshType;
 import org.openhab.core.types.State;
+import org.openhab.core.types.StateOption;
 import org.openhab.core.types.UnDefType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,8 +124,14 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         return lastSeen.get(channel);
     }
 
-    public MyToyotaVehicleHandler(Thing thing) {
+    private final MyToyotaStateDescriptionProvider stateOptions;
+    /** The recent trips as the cloud listed them, newest first, id -> trip (summary, scores, hdc; no route). */
+    private final java.util.LinkedHashMap<String, JsonObject> recentTrips = new java.util.LinkedHashMap<>();
+    private static final int RECENT_TRIPS = 20;
+
+    public MyToyotaVehicleHandler(Thing thing, MyToyotaStateDescriptionProvider stateOptions) {
         super(thing);
+        this.stateOptions = stateOptions;
     }
 
     @Override
@@ -192,6 +200,11 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                         scheduleRepoll();
                     });
                 }
+            }
+            case CHANNEL_TRIPS_SELECT -> {
+                String tripId = command.toString();
+                updateState(CHANNEL_TRIPS_SELECT, new StringType(tripId));
+                scheduler.execute(() -> selectTrip(tripId));
             }
             case CHANNEL_CONTROL_LOCK -> remoteCommand(command == OnOffType.ON ? "door-lock" : "door-unlock", id, command);
             case CHANNEL_CONTROL_HAZARD -> remoteCommand(command == OnOffType.ON ? "hazard-on" : "hazard-off", id, command);
@@ -1038,6 +1051,7 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             updateState(CHANNEL_TRIPS_LATEST_ID, tripId == null ? UnDefType.UNDEF : new StringType(tripId));
             updateState(CHANNEL_TRIPS_LATEST_ROUTE, route(trip.get("route")));
         }
+        updateRecentTrips(client, from, to);
         // month and day summaries
         JsonElement sumsEl = p.get("summary");
         State monthDist = UnDefType.UNDEF, monthDur = UnDefType.UNDEF, monthFuel = UnDefType.UNDEF, todayDist = UnDefType.UNDEF;
@@ -1084,6 +1098,143 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         updateState(CHANNEL_TRIPS_MONTH_EV_DISTANCE, monthEv);
         updateState(CHANNEL_TRIPS_TODAY_FUEL, todayFuel);
         updateState(CHANNEL_TRIPS_TIMESTAMP, new DateTimeType(now));
+    }
+
+    /**
+     * The last RECENT_TRIPS trips as a list the sitemap can show, and as the options of trips#select,
+     * so a Selection lists them by date, distance and score. Read without routes; the route of one
+     * trip is fetched when it is picked.
+     */
+    private void updateRecentTrips(MyToyotaApiClient client, String from, String to) {
+        JsonObject resp;
+        try {
+            resp = client.get(String.format(MyToyotaApiClient.ENDPOINT_TRIPS_LIST, from, to, RECENT_TRIPS), vin);
+        } catch (MyToyotaApiException e) {
+            logger.debug("Trip list for {} failed: {}", shortVin(), e.getMessage());
+            return;
+        }
+        JsonElement tripsEl = payload(resp).get("trips");
+        if (tripsEl == null || !tripsEl.isJsonArray()) {
+            return;
+        }
+        recentTrips.clear();
+        StringBuilder text = new StringBuilder();
+        List<StateOption> options = new ArrayList<>();
+        for (JsonElement el : tripsEl.getAsJsonArray()) {
+            if (!el.isJsonObject()) {
+                continue;
+            }
+            JsonObject trip = el.getAsJsonObject();
+            String id = string(trip, "id");
+            if (id == null) {
+                continue;
+            }
+            recentTrips.put(id, trip);
+            String line = tripLine(trip);
+            if (text.length() > 0) {
+                text.append('\n');
+            }
+            text.append(line);
+            options.add(new StateOption(id, line));
+        }
+        updateState(CHANNEL_TRIPS_RECENT, text.length() == 0 ? UnDefType.UNDEF : new StringType(text.toString()));
+        stateOptions.setStateOptions(new ChannelUID(getThing().getUID(), "trips", "select"), options);
+    }
+
+    /** "28/09 07:00 · 34.0 km · 41 min · 86", plus " · 1.9 l · 5.6 l/100km" on a car that burns fuel. */
+    private static String tripLine(JsonObject trip) {
+        JsonObject sum = object(trip, "summary");
+        String when = "?";
+        String startTs = string(sum, "startTs");
+        if (startTs != null) {
+            try {
+                when = Instant.parse(startTs).atZone(ZoneId.systemDefault())
+                        .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm"));
+            } catch (DateTimeParseException e) {
+                // stays "?"
+            }
+        }
+        Double len = number(sum == null ? null : sum.get("length"));
+        Double dur = number(sum == null ? null : sum.get("duration"));
+        Double fuel = number(sum == null ? null : sum.get("fuelConsumption"));
+        JsonObject scores = object(trip, "scores");
+        Double score = scores == null ? null : number(scores.get("global"));
+        StringBuilder sb = new StringBuilder(when);
+        if (len != null) {
+            sb.append(String.format(java.util.Locale.ROOT, " · %.1f km", len / 1000.0));
+        }
+        if (dur != null) {
+            sb.append(String.format(java.util.Locale.ROOT, " · %d min", Math.round(dur / 60.0)));
+        }
+        if (score != null) {
+            sb.append(" · ").append(score.intValue());
+        }
+        if (fuel != null && fuel > 0) {
+            sb.append(String.format(java.util.Locale.ROOT, " · %.1f l", fuel / 1000.0));
+            if (len != null && len >= 100) {
+                sb.append(String.format(java.util.Locale.ROOT, " · %.1f l/100km", fuel / len * 100));
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * One trip from the recent list, with its route. Fetched by its own day so the answer holds a few
+     * trips rather than twenty routes; the id picks it out. Published on the trips#selected* channels,
+     * which the map page reads with ?prefix=... .
+     */
+    private void selectTrip(String id) {
+        MyToyotaAccountHandler account = getAccount();
+        MyToyotaApiClient client = account == null ? null : account.getClient();
+        JsonObject known = recentTrips.get(id);
+        if (client == null || known == null) {
+            logger.debug("Trip {} is not in the recent list of {}", id, shortVin());
+            return;
+        }
+        JsonObject sum = object(known, "summary");
+        String startTs = string(sum, "startTs");
+        String endTs = string(sum, "endTs");
+        String from;
+        String to;
+        try {
+            from = Instant.parse(startTs == null ? "" : startTs).atZone(ZoneId.systemDefault()).toLocalDate().toString();
+            to = Instant.parse(endTs == null ? (startTs == null ? "" : startTs) : endTs).atZone(ZoneId.systemDefault())
+                    .toLocalDate().toString();
+        } catch (DateTimeParseException e) {
+            logger.debug("Trip {} of {} has no usable start time", id, shortVin());
+            return;
+        }
+        JsonObject found = known;
+        try {
+            JsonObject resp = client.get(String.format(MyToyotaApiClient.ENDPOINT_TRIPS, from, to, RECENT_TRIPS), vin);
+            JsonElement tripsEl = payload(resp).get("trips");
+            if (tripsEl != null && tripsEl.isJsonArray()) {
+                for (JsonElement el : tripsEl.getAsJsonArray()) {
+                    if (el.isJsonObject() && id.equals(string(el.getAsJsonObject(), "id"))) {
+                        found = el.getAsJsonObject();
+                        break;
+                    }
+                }
+            }
+        } catch (MyToyotaApiException e) {
+            logger.debug("Route of trip {} for {} failed: {}", id, shortVin(), e.getMessage());
+        }
+        JsonObject fs = object(found, "summary");
+        JsonObject hdc = object(found, "hdc");
+        JsonObject scores = object(found, "scores");
+        updateState(CHANNEL_TRIPS_SELECTED_ID, new StringType(id));
+        updateState(CHANNEL_TRIPS_SELECTED_START, dateTime(string(fs, "startTs")));
+        updateState(CHANNEL_TRIPS_SELECTED_END, dateTime(string(fs, "endTs")));
+        updateState(CHANNEL_TRIPS_SELECTED_DISTANCE, metres(fs == null ? null : fs.get("length")));
+        updateState(CHANNEL_TRIPS_SELECTED_DURATION, seconds(fs == null ? null : fs.get("duration")));
+        updateState(CHANNEL_TRIPS_SELECTED_SPEED, quantity(fs == null ? null : fs.get("averageSpeed"), SIUnits.KILOMETRE_PER_HOUR));
+        updateState(CHANNEL_TRIPS_SELECTED_FUEL, millilitres(fs == null ? null : fs.get("fuelConsumption")));
+        updateState(CHANNEL_TRIPS_SELECTED_FUEL_ECONOMY, fuelEconomy(fs));
+        updateState(CHANNEL_TRIPS_SELECTED_EV_DISTANCE, metres(hdc == null ? null : hdc.get("evDistance")));
+        updateState(CHANNEL_TRIPS_SELECTED_SCORE, score(scores, "global"));
+        updateState(CHANNEL_TRIPS_SELECTED_START_POS, point(fs, "startLat", "startLon"));
+        updateState(CHANNEL_TRIPS_SELECTED_END_POS, point(fs, "endLat", "endLon"));
+        updateState(CHANNEL_TRIPS_SELECTED_ROUTE, route(found.get("route")));
     }
 
     /** Service history: how many records and the newest one. */

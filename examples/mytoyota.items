@@ -38,6 +38,21 @@ Location             Car_Trip_From        "Latest trip from"                 { c
 Location             Car_Trip_To          "Latest trip to"                   { channel="mytoyota:vehicle:home:car:trips#latestEndPosition" }
 String               Car_Trip_Route       "Latest trip route"                { channel="mytoyota:vehicle:home:car:trips#latestRoute" }
 String               Car_Trip_Id          "Latest trip id [%s]"              { channel="mytoyota:vehicle:home:car:trips#latestId" }
+String               Car_Trips_Recent     "Recent trips"                     { channel="mytoyota:vehicle:home:car:trips#recent" }
+String               Car_Trip_Select      "Pick a trip [%s]"                 { channel="mytoyota:vehicle:home:car:trips#select" }
+DateTime             Car_Trip_Sel_Start   "Selected trip start [%1$td/%1$tm %1$tR]" { channel="mytoyota:vehicle:home:car:trips#selectedStart" }
+DateTime             Car_Trip_Sel_End     "Selected trip end [%1$td/%1$tm %1$tR]"   { channel="mytoyota:vehicle:home:car:trips#selectedEnd" }
+Number:Length        Car_Trip_Sel_Distance "Selected trip [%.1f km]"         { channel="mytoyota:vehicle:home:car:trips#selectedDistance", unit="km" }
+Number:Time          Car_Trip_Sel_Duration "Selected trip duration [%.0f min]" { channel="mytoyota:vehicle:home:car:trips#selectedDuration", unit="min" }
+Number:Speed         Car_Trip_Sel_Speed   "Selected trip average [%.0f km/h]" { channel="mytoyota:vehicle:home:car:trips#selectedAverageSpeed", unit="km/h" }
+Number:Volume        Car_Trip_Sel_Fuel    "Selected trip fuel [%.2f l]"      { channel="mytoyota:vehicle:home:car:trips#selectedFuel" }
+Number               Car_Trip_Sel_Economy "Selected trip [%.1f l/100km]"     { channel="mytoyota:vehicle:home:car:trips#selectedFuelEconomy" }
+Number:Length        Car_Trip_Sel_EV      "Selected trip electric [%.1f km]" { channel="mytoyota:vehicle:home:car:trips#selectedEvDistance", unit="km" }
+Number               Car_Trip_Sel_Score   "Selected trip score [%d]"         { channel="mytoyota:vehicle:home:car:trips#selectedScore" }
+Location             Car_Trip_Sel_From    "Selected trip from"               { channel="mytoyota:vehicle:home:car:trips#selectedStartPosition" }
+Location             Car_Trip_Sel_To      "Selected trip to"                 { channel="mytoyota:vehicle:home:car:trips#selectedEndPosition" }
+String               Car_Trip_Sel_Route   "Selected trip route"              { channel="mytoyota:vehicle:home:car:trips#selectedRoute" }
+String               Car_Trip_Sel_Id      "Selected trip id [%s]"            { channel="mytoyota:vehicle:home:car:trips#selectedId" }
 Number:Length        Car_Trips_Today      "Today [%.1f km]"                  { channel="mytoyota:vehicle:home:car:trips#todayDistance", unit="km" }
 Number:Volume        Car_Trips_Today_Fuel "Today fuel [%.1f l]"              { channel="mytoyota:vehicle:home:car:trips#todayFuel" }
 Number:Length        Car_Trips_Month      "This month [%.0f km]"             { channel="mytoyota:vehicle:home:car:trips#monthDistance", unit="km" }

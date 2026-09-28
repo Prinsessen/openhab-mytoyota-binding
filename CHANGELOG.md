@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.9.0 — 2026-09-28
+
+Trips beyond the latest one. `trips#recent` lists the last twenty as text,
+and `trips#select` lets a sitemap `Selection` or a UI dropdown pick one - its
+options are the trips themselves (date, distance, duration, score, fuel),
+filled by the binding through a dynamic state description, so nothing is
+mapped by hand. The picked trip arrives on thirteen `trips#selected*`
+channels, route included; the map page draws it with `?prefix=`. The list is
+read without routes and the route of one trip is fetched by its own day when
+picked, so the cloud is never asked for twenty routes at once.
+
 ## 1.8.2 — 2026-09-28
 
 A car that nothing answers for stays OFFLINE. 1.8.0 and 1.8.1 put every failed

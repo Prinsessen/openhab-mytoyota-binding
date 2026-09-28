@@ -85,6 +85,8 @@ public class MyToyotaApiClient {
     public static final String ENDPOINT_CLIMATE_SETTINGS = "/v1/vehicle/climate-settings";
     /** Trips: from/to as yyyy-MM-dd; summary=true adds month and day summaries; newest first */
     public static final String ENDPOINT_TRIPS = "/v1/trips?from=%s&to=%s&route=true&summary=true&limit=%d&offset=0";
+    /** The same list without routes: twenty routes would be a megabyte for a list nobody reads on a map at once */
+    public static final String ENDPOINT_TRIPS_LIST = "/v1/trips?from=%s&to=%s&route=false&summary=false&limit=%d&offset=0";
     public static final String ENDPOINT_SERVICE_HISTORY = "/v1/servicehistory/vehicle/summary";
     /** POST, no body: asks the car to report its climate state, like the status wake */
     public static final String ENDPOINT_CLIMATE_REFRESH = "/v1/remote/refresh-climate-status";

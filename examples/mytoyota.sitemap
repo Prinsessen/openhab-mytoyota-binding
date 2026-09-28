@@ -42,6 +42,15 @@ sitemap car label="Car" {
         Text item=Car_Trips_Month visibility=[Car_Trips_30d>0]
         Webview url="/static/trip-map.html" height=18
     }
+    Frame label="Pick a trip (the last twenty)" {
+        // the options are the trips themselves, filled by the binding - no mappings
+        Selection item=Car_Trip_Select label="Trip"
+        Text item=Car_Trip_Sel_Start visibility=[Car_Trip_Sel_Id!=NULL,Car_Trip_Sel_Id!=UNDEF]
+        Text item=Car_Trip_Sel_Distance visibility=[Car_Trip_Sel_Id!=NULL,Car_Trip_Sel_Id!=UNDEF]
+        Text item=Car_Trip_Sel_Duration visibility=[Car_Trip_Sel_Id!=NULL,Car_Trip_Sel_Id!=UNDEF]
+        Text item=Car_Trip_Sel_Score visibility=[Car_Trip_Sel_Id!=NULL,Car_Trip_Sel_Id!=UNDEF]
+        Webview url="/static/trip-map.html?prefix=Car_Trip_Sel_" height=18 visibility=[Car_Trip_Sel_Id!=NULL,Car_Trip_Sel_Id!=UNDEF]
+    }
     Frame label="Position" {
         Mapview item=Car_Position height=8
         Text item=Car_Position_At

@@ -160,6 +160,21 @@
 			<channel id="latestEndPosition" typeId="trip-position"><label>Latest Trip End Position</label></channel>
 			<channel id="latestRoute" typeId="trip-route"/>
 			<channel id="latestId" typeId="trip-id"/>
+			<channel id="recent" typeId="trip-list"/>
+			<channel id="select" typeId="trip-select"/>
+			<channel id="selectedStart" typeId="timestamp"><label>Selected Trip Start</label></channel>
+			<channel id="selectedEnd" typeId="timestamp"><label>Selected Trip End</label></channel>
+			<channel id="selectedDistance" typeId="trip-distance"><label>Selected Trip Distance</label></channel>
+			<channel id="selectedDuration" typeId="trip-duration"><label>Selected Trip Duration</label></channel>
+			<channel id="selectedAverageSpeed" typeId="trip-speed"><label>Selected Trip Average Speed</label></channel>
+			<channel id="selectedFuel" typeId="trip-fuel"><label>Selected Trip Fuel</label></channel>
+			<channel id="selectedFuelEconomy" typeId="fuel-economy"><label>Selected Trip Consumption</label></channel>
+			<channel id="selectedEvDistance" typeId="trip-distance"><label>Selected Trip EV Distance</label></channel>
+			<channel id="selectedScore" typeId="trip-score"><label>Selected Trip Score</label></channel>
+			<channel id="selectedStartPosition" typeId="trip-position"><label>Selected Trip Start Position</label></channel>
+			<channel id="selectedEndPosition" typeId="trip-position"><label>Selected Trip End Position</label></channel>
+			<channel id="selectedRoute" typeId="trip-route"><label>Selected Trip Route</label></channel>
+			<channel id="selectedId" typeId="trip-id"><label>Selected Trip Id</label></channel>
 			<channel id="lastUpdate" typeId="timestamp"><label>Trips Read</label></channel>
 		</channels>
 	</channel-group-type>
@@ -677,6 +692,20 @@
 		<label>Latest Trip Score</label>
 		<description>Toyota's driving score for the trip, 0 to 100.</description>
 		<state readOnly="true" pattern="%d"/>
+	</channel-type>
+	<channel-type id="trip-list" advanced="true">
+		<item-type>String</item-type>
+		<label>Recent Trips</label>
+		<description>The last twenty trips, one per line: date and time, distance, duration, score, and fuel on a
+			car that burns it. Read with the latest trip.</description>
+		<state readOnly="true"/>
+	</channel-type>
+	<channel-type id="trip-select">
+		<item-type>String</item-type>
+		<label>Select Trip</label>
+		<description>Pick one of the recent trips: its options are the trips themselves, so a sitemap Selection
+			lists them by date, distance and score. The picked trip's numbers and route arrive on the
+			selected* channels a moment later.</description>
 	</channel-type>
 	<channel-type id="fuel-economy">
 		<item-type>Number</item-type>

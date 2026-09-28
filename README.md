@@ -47,6 +47,7 @@ older JAR, remove it first.
 
 | release | file | sha256 |
 |---|---|---|
+| 1.9.0 | `org.openhab.binding.mytoyota-1.9.0.jar` | `6107069cdb70f68bd8c36667296636171428c500eb54d48e4e9e39be6ff00ad7` |
 | 1.8.2 | `org.openhab.binding.mytoyota-1.8.2.jar` | `c5468aee8ab3e9d01213d1eb65d78d592958c328484518ade5b289a6abbb81de` |
 | 1.8.1 | `org.openhab.binding.mytoyota-1.8.1.jar` | `6200a047e0257e695c414e0abddc35a9cf9033cf7b3b22adb5dbce00f39576f9` |
 | 1.8.0 | `org.openhab.binding.mytoyota-1.8.0.jar` | `609a013f3a22fcedf575f834958e53234bac5293a30cacc668e42b650eca5d1c` |
@@ -161,7 +162,14 @@ cloud keeps about 12 months.
 | `trips#monthFuelEconomy` | Number | this month's l/100 km |
 | `trips#monthEvDistance` | Number:Length | this month driven electrically |
 | `trips#count30Days` | Number | trips in the last 30 days |
+| `trips#recent` | String | the last twenty trips, one per line: `28/09 07:00 · 34.0 km · 41 min · 86`, plus fuel and l/100 km on a car that burns fuel |
+| `trips#select` | String | **pick one of them**: the channel's options are the trips themselves, so a sitemap `Selection` (no mappings needed) or a UI dropdown lists them. Send a trip id and the channels below fill a moment later |
+| `trips#selectedStart`, `selectedEnd`, `selectedDistance`, `selectedDuration`, `selectedAverageSpeed`, `selectedFuel`, `selectedFuelEconomy`, `selectedEvDistance`, `selectedScore`, `selectedStartPosition`, `selectedEndPosition`, `selectedRoute`, `selectedId` | as the `latest*` channels | the picked trip, route included |
 | `trips#lastUpdate` | DateTime | when the history was read |
+
+The list is read without routes (twenty routes would be a megabyte); the route
+of a trip is fetched when it is picked, by its own day. The example map page
+draws either the latest trip or the picked one: `trip-map.html?prefix=Car_Trip_Sel_`.
 
 ### service
 
