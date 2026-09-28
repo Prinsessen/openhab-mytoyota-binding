@@ -150,7 +150,7 @@ cloud keeps about 12 months.
 | `trips#latestEvDistance` | Number:Length | driven electrically |
 | `trips#latestEvDuration` | Number:Time | time driven electrically (hybrids: the engine-off share) |
 | `trips#latestScore` | Number | Toyota's driving score, 0–100 |
-| `trips#latestScoreAcceleration`, `latestScoreBraking`, `latestScoreConstantSpeed`, `latestScoreAdvice` | Number | the four parts behind the score, as the app shows them |
+| `trips#latestScoreAcceleration`, `latestScoreBraking`, `latestScoreConstantSpeed`, `latestScoreAdvice` | Number | the parts behind the score. On the test car the first two read 82 and 90 with the score at 86, constant speed was absent (UNDEF) and advice read 1 - so advice may be a count rather than a score; the payload does not say |
 | `trips#latestStartPosition`, `latestEndPosition` | Location | |
 | `trips#latestRoute` | String | the route as `lat,lon,flags;…` (five decimals; flags `e` electric, `h` highway, `o` over the limit). For a map; do not persist |
 | `trips#latestId` | String | the cloud's trip id |
