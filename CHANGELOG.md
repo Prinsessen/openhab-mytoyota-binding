@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.9.1 — 2026-09-29
+
+- `trips#monthScore`: the cloud's driving score for the month (pytoyoda 5.2.6,
+  `hybrid_score`).
+- A wake is followed up until the car has answered: the poll 45 s after
+  `control#refresh` is repeated up to three times while the electric status
+  still carries a timestamp older than the wake. One poll caught the test car
+  every time; a car on a weak cellular link can be slower (ha_toyota #431).
+
 ## 1.9.0 — 2026-09-28
 
 Trips beyond the latest one. `trips#recent` lists the last twenty as text,

@@ -47,6 +47,7 @@ older JAR, remove it first.
 
 | release | file | sha256 |
 |---|---|---|
+| 1.9.1 | `org.openhab.binding.mytoyota-1.9.1.jar` | `ab0ec7e4134eb670b7baa9193c7265134a77ad98957618bada27ad6eabd8d431` |
 | 1.9.0 | `org.openhab.binding.mytoyota-1.9.0.jar` | `6107069cdb70f68bd8c36667296636171428c500eb54d48e4e9e39be6ff00ad7` |
 | 1.8.2 | `org.openhab.binding.mytoyota-1.8.2.jar` | `c5468aee8ab3e9d01213d1eb65d78d592958c328484518ade5b289a6abbb81de` |
 | 1.8.1 | `org.openhab.binding.mytoyota-1.8.1.jar` | `6200a047e0257e695c414e0abddc35a9cf9033cf7b3b22adb5dbce00f39576f9` |
@@ -161,6 +162,7 @@ cloud keeps about 12 months.
 | `trips#monthDistance`, `monthDuration`, `monthFuel` | | this month's totals |
 | `trips#monthFuelEconomy` | Number | this month's l/100 km |
 | `trips#monthEvDistance` | Number:Length | this month driven electrically |
+| `trips#monthScore` | Number | the cloud's driving score for the month |
 | `trips#count30Days` | Number | trips in the last 30 days |
 | `trips#recent` | String | the last twenty trips, one per line: `28/09 07:00 · 34.0 km · 41 min · 86`, plus fuel and l/100 km on a car that burns fuel |
 | `trips#select` | String | **pick one of them**: the channel's options are the trips themselves, so a sitemap `Selection` (no mappings needed) or a UI dropdown lists them. Send a trip id and the channels below fill a moment later |
@@ -257,7 +259,7 @@ Always present:
 
 | channel | type | |
 |---|---|---|
-| `control#refresh` | Switch | ON wakes the car for a fresh state of charge and door state; polled again 45 s later; returns to OFF |
+| `control#refresh` | Switch | ON wakes the car for a fresh state of charge and door state; polled again after 45 s, and again up to three times while the car has not reported since the wake; returns to OFF |
 | `control#lock` | Switch | ON locks, OFF unlocks. Mirrors the car's lock state |
 | `control#hazardLights` | Switch | on / off. Mirrors the car |
 | `control#horn`, `control#findVehicle` | Switch | ON runs it once |

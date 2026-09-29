@@ -77,6 +77,7 @@ public class MyToyotaBindingConstants {
     public static final String CHANNEL_TRIPS_TODAY_FUEL = "trips#todayFuel";
     public static final String CHANNEL_TRIPS_MONTH_FUEL_ECONOMY = "trips#monthFuelEconomy";
     public static final String CHANNEL_TRIPS_MONTH_EV_DISTANCE = "trips#monthEvDistance";
+    public static final String CHANNEL_TRIPS_MONTH_SCORE = "trips#monthScore";
     // the recent trips as a list, and one of them picked out with its route (1.9.0)
     public static final String CHANNEL_TRIPS_RECENT = "trips#recent";
     public static final String CHANNEL_TRIPS_SELECT = "trips#select";

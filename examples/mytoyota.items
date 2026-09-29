@@ -60,6 +60,7 @@ Number:Time          Car_Trips_Month_Time "This month driving [%.0f min]"    { c
 Number:Volume        Car_Trips_Month_Fuel "This month fuel [%.1f l]"         { channel="mytoyota:vehicle:home:car:trips#monthFuel", unit="l" }
 Number               Car_Trips_Month_Econ "This month [%.1f l/100km]"        { channel="mytoyota:vehicle:home:car:trips#monthFuelEconomy" }
 Number:Length        Car_Trips_Month_EV   "This month electric [%.0f km]"    { channel="mytoyota:vehicle:home:car:trips#monthEvDistance", unit="km" }
+Number               Car_Trips_Month_Score "This month score [%d]"           { channel="mytoyota:vehicle:home:car:trips#monthScore" }
 Number               Car_Trips_30d        "Trips in 30 days [%d]"            { channel="mytoyota:vehicle:home:car:trips#count30Days" }
 DateTime             Car_Trips_Read       "Trips read [%1$td/%1$tm %1$tR]"   { channel="mytoyota:vehicle:home:car:trips#lastUpdate" }
 

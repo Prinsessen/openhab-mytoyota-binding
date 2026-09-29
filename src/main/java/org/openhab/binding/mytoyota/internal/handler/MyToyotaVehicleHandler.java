@@ -80,6 +80,17 @@ import com.google.gson.JsonObject;
 public class MyToyotaVehicleHandler extends BaseThingHandler {
 
     private static final int REPOLL_AFTER_WAKE_SECONDS = 45;
+    /**
+     * A wake asks the car to report; the cloud answers the request at once and the car some seconds to
+     * a minute later. One poll 45 s after the wake caught it on the test car every time, but a car on
+     * a weak cellular link can be slower (ha_toyota #431 saw stale state of charge after its refresh
+     * button), so the poll is repeated, up to this many times, until the electric status carries a
+     * timestamp newer than the wake.
+     */
+    private static final int REPOLLS_AFTER_WAKE = 3;
+    private Instant wakeIssuedAt = Instant.EPOCH;
+    private int repollsLeft;
+    private @Nullable Instant electricReportedAt;
 
     /** Above a day, a remaining-charge time is Toyota's placeholder rather than an estimate. */
     private static final int MAX_PLAUSIBLE_CHARGE_MINUTES = 1440;
@@ -419,6 +430,19 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             pollOk = 0;
             if (electricCapable) {
                 read("electric status", () -> readElectric(client), this::updateElectric);
+                if (repollsLeft > 0) {
+                    Instant reported = electricReportedAt;
+                    if (reported != null && reported.isAfter(wakeIssuedAt)) {
+                        repollsLeft = 0;                       // the car has answered the wake
+                    } else if (--repollsLeft > 0) {
+                        logger.debug("{} has not reported since the wake at {}; polling again in {} s", shortVin(),
+                                wakeIssuedAt, REPOLL_AFTER_WAKE_SECONDS);
+                        scheduleRepoll();
+                    } else {
+                        logger.debug("{} did not report after the wake at {}; giving up until the next poll",
+                                shortVin(), wakeIssuedAt);
+                    }
+                }
             }
             read("telemetry", () -> client.get(MyToyotaApiClient.ENDPOINT_TELEMETRY, vin), this::updateTelemetry);
             read("location", () -> client.get(MyToyotaApiClient.ENDPOINT_LOCATION, vin), this::updateLocation);
@@ -577,6 +601,8 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                 client.post(MyToyotaApiClient.ENDPOINT_REFRESH_STATUS, vin);
             }
             lastWake = Instant.now();
+            wakeIssuedAt = lastWake;
+            repollsLeft = REPOLLS_AFTER_WAKE;
             updateState(CHANNEL_CONTROL_LAST_WAKE, new DateTimeType(ZonedDateTime.now()));
             String code = string(payload(r), "returnCode");
             if (code != null && !"000000".equals(code)) {
@@ -608,6 +634,12 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         updateState(CHANNEL_BATTERY_CHARGING_ACTIVE, OnOffType.from(charging));
         updateState(CHANNEL_BATTERY_REMAINING_TIME, remainingChargeTime(p));
         updateState(CHANNEL_BATTERY_TIMESTAMP, dateTime(string(p, "lastUpdateTimestamp")));
+        try {
+            String stamp = string(p, "lastUpdateTimestamp");
+            electricReportedAt = stamp == null ? null : Instant.parse(stamp);
+        } catch (DateTimeParseException e) {
+            electricReportedAt = null;
+        }
         // plug-in hybrids: the usable part of the battery (pytoyoda 5.2.9) and fuel + EV range together
         updateState(CHANNEL_BATTERY_USABLE_LEVEL, quantity(p.get("phevUsableBatteryLevel"), Units.PERCENT));
         updateState(CHANNEL_BATTERY_TOTAL_RANGE, totalRange(p));
@@ -1056,6 +1088,7 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         JsonElement sumsEl = p.get("summary");
         State monthDist = UnDefType.UNDEF, monthDur = UnDefType.UNDEF, monthFuel = UnDefType.UNDEF, todayDist = UnDefType.UNDEF;
         State monthEconomy = UnDefType.UNDEF, monthEv = UnDefType.UNDEF, todayFuel = UnDefType.UNDEF;
+        State monthScore = UnDefType.UNDEF;
         if (sumsEl != null && sumsEl.isJsonArray()) {
             for (JsonElement el : sumsEl.getAsJsonArray()) {
                 if (!el.isJsonObject()) {
@@ -1074,6 +1107,9 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                 monthEconomy = fuelEconomy(ms);
                 JsonObject mh = object(m, "hdc") != null ? object(m, "hdc") : object(ms, "hdc");
                 monthEv = metres(mh == null ? null : mh.get("evDistance"));
+                // the cloud's own score for the month; pytoyoda (5.2.6, hybrid_score) reads the same
+                // field, and averages the days only for a week, which has no figure of its own
+                monthScore = score(object(m, "scores"), "global");
                 JsonElement hist = m.get("histograms");
                 if (hist != null && hist.isJsonArray()) {
                     for (JsonElement h : hist.getAsJsonArray()) {
@@ -1097,6 +1133,7 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         updateState(CHANNEL_TRIPS_MONTH_FUEL_ECONOMY, monthEconomy);
         updateState(CHANNEL_TRIPS_MONTH_EV_DISTANCE, monthEv);
         updateState(CHANNEL_TRIPS_TODAY_FUEL, todayFuel);
+        updateState(CHANNEL_TRIPS_MONTH_SCORE, monthScore);
         updateState(CHANNEL_TRIPS_TIMESTAMP, new DateTimeType(now));
     }
 

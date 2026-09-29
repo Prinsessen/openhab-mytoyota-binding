@@ -155,6 +155,7 @@
 			<channel id="monthFuel" typeId="trip-fuel"><label>This Month Fuel</label></channel>
 			<channel id="monthFuelEconomy" typeId="fuel-economy"><label>This Month Consumption</label></channel>
 			<channel id="monthEvDistance" typeId="trip-distance"><label>This Month EV Distance</label></channel>
+			<channel id="monthScore" typeId="trip-score"><label>This Month Score</label></channel>
 			<channel id="count30Days" typeId="trip-count"/>
 			<channel id="latestStartPosition" typeId="trip-position"><label>Latest Trip Start Position</label></channel>
 			<channel id="latestEndPosition" typeId="trip-position"><label>Latest Trip End Position</label></channel>
