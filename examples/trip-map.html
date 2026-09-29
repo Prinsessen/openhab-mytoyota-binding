@@ -74,6 +74,13 @@ async function draw() {
 }
 draw();
 setInterval(draw, 5 * 60 * 1000);
+// Redraw the moment the route item changes: a trip picked on the sitemap shows up without a
+// page refresh, and the latest-trip page follows a new trip as soon as the binding has read it.
+// openHAB's event stream is same-origin and needs no token for reads.
+try {
+  const es = new EventSource('/rest/events?topics=openhab/items/' + P + 'Route/statechanged');
+  es.onmessage = () => draw();
+} catch (e) { /* no event stream: the five-minute redraw still runs */ }
 </script>
 </body>
 </html>
