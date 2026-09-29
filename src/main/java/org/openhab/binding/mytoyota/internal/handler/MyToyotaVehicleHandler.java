@@ -40,7 +40,10 @@ import org.openhab.core.library.unit.MetricPrefix;
 import org.openhab.core.library.unit.SIUnits;
 import org.openhab.core.library.unit.Units;
 import org.openhab.core.thing.Bridge;
+import org.openhab.core.thing.ChannelGroupUID;
 import org.openhab.core.thing.ChannelUID;
+import org.openhab.core.thing.binding.ThingHandlerCallback;
+import org.openhab.core.thing.type.ChannelGroupTypeUID;
 import org.openhab.core.thing.Thing;
 import org.openhab.core.thing.ThingStatus;
 import org.openhab.core.thing.ThingStatusDetail;
@@ -153,7 +156,55 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             return;
         }
         updateStatus(ThingStatus.UNKNOWN);
+        ensureAllChannels();
         startPolling();
+    }
+
+    /** The channel groups of the vehicle thing type, in the order of thing-types.xml. */
+    private static final String[] CHANNEL_GROUPS = { "battery", "telemetry", "trips", "service", "location", "status",
+            "doors", "windows", "lights", "health", "climate", "notifications", "control" };
+
+    /**
+     * Puts back every channel the thing type defines that the thing does not have.
+     *
+     * When the binding's JAR is replaced, a thing from a .things file can be rebuilt by the file
+     * provider before the bundle has registered its channel types; core then logs "Could not create
+     * channels for channel group ... could not be found" and creates the thing with no channels. State
+     * updates still reach the items (they travel by link), so nothing looks wrong - but a command is
+     * dropped by core with "non-existing channel", and until 1.9.2 the first poll's provisioning then
+     * wrote that empty thing back with only the optional channels on it. On 2026-09-29 the bZ4X stood
+     * ONLINE all morning with every command dead, the preheat wake included. The channel builders come
+     * from core's own registry, so the channels are exactly the ones the thing type declares.
+     */
+    private void ensureAllChannels() {
+        ThingHandlerCallback callback = getCallback();
+        if (callback == null) {
+            return;
+        }
+        List<Channel> channels = new ArrayList<>(getThing().getChannels());
+        List<String> restored = new ArrayList<>();
+        for (String group : CHANNEL_GROUPS) {
+            ChannelGroupUID groupUID = new ChannelGroupUID(getThing().getUID(), group);
+            List<ChannelBuilder> builders;
+            try {
+                builders = callback.createChannelBuilders(groupUID, new ChannelGroupTypeUID(BINDING_ID, group));
+            } catch (RuntimeException e) {
+                logger.debug("No channel builders for group {} of {}: {}", group, shortVin(), e.getMessage());
+                continue;
+            }
+            for (ChannelBuilder b : builders) {
+                Channel c = b.build();
+                if (getThing().getChannel(c.getUID()) == null) {
+                    channels.add(c);
+                    restored.add(c.getUID().getId());
+                }
+            }
+        }
+        if (!restored.isEmpty()) {
+            updateThing(editThing().withChannels(channels).build());
+            logger.info("{}: {} channel(s) put back that the thing had lost (a JAR replace can rebuild a .things thing before the channel types exist): {}",
+                    shortVin(), restored.size(), String.join(", ", restored));
+        }
     }
 
     @Override

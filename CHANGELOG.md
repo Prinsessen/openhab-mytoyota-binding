@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.9.3 — 2026-09-29
+
+The thing heals its own channel list. When the binding's JAR is replaced, a
+thing from a `.things` file can be rebuilt by the file provider before the
+bundle has registered its channel types - core logs "Could not create channels
+for channel group … could not be found" and creates the thing with no channels.
+States still reach the items (they travel by link), so nothing looks wrong; but
+core drops every command with "non-existing channel", and until 1.9.2 the first
+poll's provisioning wrote that empty thing back with only the optional channels
+on it. On 2026-09-29 the test car stood ONLINE all morning with every command
+dead, the preheat wake included; a `bundle:restart` cured it. Now `initialize()`
+asks core for the channel builders of every group of the thing type and puts
+back what is missing, and says so once at INFO.
+
+## 1.9.2 — 2026-09-29
+
+A command the car does not offer is reported in words. The EU backend answers
+`CTP-REMOTE-40006 "Missing/Invalid remote command request"` for commands a
+car does not have, whatever its capability flags say - hazard-off on the
+bZ4X on 2026-09-24, find-vehicle on the same car today. `control#lastCommandResult`
+now reads `find-vehicle: not offered for this car (CTP-REMOTE-40006)` and the
+log says so at INFO; a real failure still reads `failed` and logs a WARN.
+
 ## 1.9.1 — 2026-09-29
 
 - `trips#monthScore`: the cloud's driving score for the month (pytoyoda 5.2.6,
