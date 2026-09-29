@@ -366,8 +366,22 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                 }
                 scheduleRepoll();
             } catch (MyToyotaApiException e) {
-                logger.warn("Remote command {} on {} failed: {}", label, shortVin(), e.getMessage());
-                updateState(CHANNEL_CONTROL_LAST_RESULT, new StringType(label + ": failed, " + e.getMessage()));
+                // CTP-REMOTE-40006 "Missing/Invalid remote command request" is the EU backend's way of
+                // saying the car does not offer this command: hazard-off on the bZ4X (2026-09-24),
+                // find-vehicle on the same car (2026-09-29). Not a fault, so not a WARN, and said in
+                // words the sitemap can show instead of a 400 with a JSON body.
+                String m = e.getMessage() == null ? "" : e.getMessage();
+                java.util.regex.Matcher code = java.util.regex.Pattern.compile("CTP-[A-Z]+-\\d{5}").matcher(m);
+                String ctp = code.find() ? code.group() : null;
+                if ("CTP-REMOTE-40006".equals(ctp)) {
+                    logger.info("Remote command {} on {}: not offered for this car ({})", label, shortVin(), ctp);
+                    updateState(CHANNEL_CONTROL_LAST_RESULT,
+                            new StringType(label + ": not offered for this car (" + ctp + ")"));
+                } else {
+                    logger.warn("Remote command {} on {} failed: {}", label, shortVin(), m);
+                    updateState(CHANNEL_CONTROL_LAST_RESULT,
+                            new StringType(label + ": failed" + (ctp == null ? ", " + m : " (" + ctp + ")")));
+                }
             }
         });
     }

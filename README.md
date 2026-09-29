@@ -47,6 +47,7 @@ older JAR, remove it first.
 
 | release | file | sha256 |
 |---|---|---|
+| 1.9.2 | `org.openhab.binding.mytoyota-1.9.2.jar` | `40325825bdc7b73d6a160959ddde781eb767bc5548b16ae8ca729922b81d7da9` |
 | 1.9.1 | `org.openhab.binding.mytoyota-1.9.1.jar` | `ab0ec7e4134eb670b7baa9193c7265134a77ad98957618bada27ad6eabd8d431` |
 | 1.9.0 | `org.openhab.binding.mytoyota-1.9.0.jar` | `6107069cdb70f68bd8c36667296636171428c500eb54d48e4e9e39be6ff00ad7` |
 | 1.8.2 | `org.openhab.binding.mytoyota-1.8.2.jar` | `c5468aee8ab3e9d01213d1eb65d78d592958c328484518ade5b289a6abbb81de` |
@@ -422,6 +423,7 @@ Please report what works on your model, with the `capabilities` property.
 | values never change | the car is asleep; look at `*#lastUpdate`. Use `control#refresh` once |
 | `location#position` never changes, `location#lastUpdate` stays old, and the app says "Vehicle location is currently unavailable because you have privacy preferences turned on" | the car's privacy setting stops position upload; the cloud keeps the last point it got. Turn location sharing on in the car (multimedia screen → Settings → Privacy), then `control#refresh`. Dealers often leave it on. Trips depend on the same data |
 | `status#warnings` is 5 but `health#warnings` says "none" | different things: 5 is the app's red marks (unlocked doors), health is tyre pressure etc. |
+| a command answers `not offered for this car (CTP-REMOTE-40006)` | the EU backend rejects commands the car does not have, whatever the capability flags say: hazard-off and find-vehicle on a bZ4X. Nothing to fix; the channel stays for cars that have it | — |
 | a command returns `000000` but nothing happens | the car refused; `notifications#latest` says why (key fob inside, doors open, battery too low for climate) |
 | `trips#*` stay UNDEF | no trip in the cloud yet, the car has not parked since the last read, or privacy is on in the car (see above) |
 | after a Toyota app update something stops | compare with pytoyoda and open an issue with the log at DEBUG for `org.openhab.binding.mytoyota` |
