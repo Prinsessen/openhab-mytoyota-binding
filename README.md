@@ -47,7 +47,7 @@ older JAR, remove it first.
 
 | release | file | sha256 |
 |---|---|---|
-| 1.9.4 | `org.openhab.binding.mytoyota-1.9.4.jar` | `a0d30b375f9e7e62c419c0a28edd1b237f97440606ed7ab7c9945fdc21a45640` |
+| 1.9.5 | `org.openhab.binding.mytoyota-1.9.5.jar` | `ce66f3f8417ec03948fac3b1647fe67cd77617cbd4d66c70d247064dc792b742` |
 | 1.9.2 | `org.openhab.binding.mytoyota-1.9.2.jar` | `40325825bdc7b73d6a160959ddde781eb767bc5548b16ae8ca729922b81d7da9` |
 | 1.9.1 | `org.openhab.binding.mytoyota-1.9.1.jar` | `ab0ec7e4134eb670b7baa9193c7265134a77ad98957618bada27ad6eabd8d431` |
 | 1.9.0 | `org.openhab.binding.mytoyota-1.9.0.jar` | `6107069cdb70f68bd8c36667296636171428c500eb54d48e4e9e39be6ff00ad7` |
@@ -424,7 +424,7 @@ Please report what works on your model, with the `capabilities` property.
 | values never change | the car is asleep; look at `*#lastUpdate`. Use `control#refresh` once |
 | `location#position` never changes, `location#lastUpdate` stays old, and the app says "Vehicle location is currently unavailable because you have privacy preferences turned on" | the car's privacy setting stops position upload; the cloud keeps the last point it got. Turn location sharing on in the car (multimedia screen → Settings → Privacy), then `control#refresh`. Dealers often leave it on. Trips depend on the same data |
 | `status#warnings` is 5 but `health#warnings` says "none" | different things: 5 is the app's red marks (unlocked doors), health is tyre pressure etc. |
-| states update but **every command is ignored**, and `openhab.log` has `Could not create channels for channel group … could not be found` from the last JAR replace | the thing was rebuilt from the `.things` file before the binding's channel types existed, so it has no channels; core drops commands for a channel the thing lacks. Since 1.9.4 the binding puts the channels back at start and logs `channel(s) put back`. On older versions: `bundle:restart <id>` of the binding in the console, or restart openHAB | 1.9.4 |
+| states update but **every command is ignored**, and `openhab.log` has `Could not create channels for channel group … could not be found` from the last JAR replace | the thing was rebuilt from the `.things` file before the binding's channel types existed, so it has no channels; core drops commands for a channel the thing lacks. Since 1.9.5 the binding puts the channels back at start and logs `channel(s) put back`. On older versions: `bundle:restart <id>` of the binding in the console, or restart openHAB | 1.9.5 |
 | a command answers `not offered for this car (CTP-REMOTE-40006)` | the EU backend rejects commands the car does not have, whatever the capability flags say: hazard-off and find-vehicle on a bZ4X. Nothing to fix; the channel stays for cars that have it | — |
 | a command returns `000000` but nothing happens | the car refused; `notifications#latest` says why (key fob inside, doors open, battery too low for climate) |
 | `trips#*` stay UNDEF | no trip in the cloud yet, the car has not parked since the last read, or privacy is on in the car (see above) |

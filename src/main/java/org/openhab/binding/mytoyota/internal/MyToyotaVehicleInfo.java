@@ -93,19 +93,26 @@ public final class MyToyotaVehicleInfo {
     }
 
     /**
-     * Whether the car has a tank the cloud reports on. Read from the capabilities rather than the
-     * fuel type, because Toyota's registry is wrong about some cars (see vehicleType).
+     * Whether the car has a combustion engine, read from the capabilities rather than the fuel type
+     * because Toyota's registry is wrong about some cars (see vehicleType).
+     *
+     * Only hybridPulse can be trusted for this. 1.9.4 also took fuelLevelAvailable and
+     * fuelRangeAvailable as proof and was wrong within the hour: a bZ4X, a car with no engine at
+     * all, advertises both of them as true (checked against its own payload, 2026-09-29), so every
+     * battery car came back as a plug-in hybrid. hybridPulse is false on that bZ4X and true on the
+     * 2025 RAV4 PHEV from the forum, and it is only ever consulted for a car the registry already
+     * calls electric, so a full hybrid (fuelType B) never reaches it.
      */
     public static boolean burnsFuel(JsonObject v) {
-        return capable(v, "fuelLevelAvailable") || capable(v, "fuelRangeAvailable") || capable(v, "hybridPulse");
+        return capable(v, "hybridPulse");
     }
 
     /**
      * Toyota's fuelType code: B full hybrid, E electric, I plug-in hybrid; anything else burns fuel
      * only. The registry gets this wrong for some plug-in hybrids - a 2025 RAV4 PHEV came back as
-     * fuelType E on the forum, 2026-09-29 - so a car that the same payload says has a fuel level is
-     * reported as a plug-in hybrid whatever the code says. pytoyoda 5.2.9 trusts the code alone and
-     * calls that car electric.
+     * fuelType E on the forum, 2026-09-29 - so a car the same payload says has a hybrid drivetrain
+     * is reported as a plug-in hybrid whatever the code says. pytoyoda 5.2.9 trusts the code alone
+     * and calls that car electric.
      */
     public static String vehicleType(JsonObject v) {
         String fuel = text(v, "fuelType");

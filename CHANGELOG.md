@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.9.5 — 2026-09-29
+
+**Fixes a regression in 1.9.4, which was live for about an hour.** 1.9.4 read
+three capability flags as proof that a car burns fuel: `hybridPulse`,
+`fuelLevelAvailable` and `fuelRangeAvailable`. The last two are set to true on a
+bZ4X as well, a car with no engine at all, so 1.9.4 reported every battery car
+as a plug-in hybrid. Only `hybridPulse` separates the two cars this was checked
+against, and it is only consulted for a car the registry already calls electric,
+so a full hybrid never reaches it. Anyone who ran 1.9.4 on an EV saw the wrong
+`vehicleType` property and a wrong word in one log line; nothing else keys off
+it, and updating is enough to put it right.
+
 ## 1.9.4 — 2026-09-29
 
 Two things a plug-in hybrid owner found on the forum.
