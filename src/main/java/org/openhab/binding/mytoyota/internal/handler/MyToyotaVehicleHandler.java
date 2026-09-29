@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -105,6 +106,7 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
     private @Nullable ScheduledFuture<?> repollJob;
     private Instant lastWake = Instant.EPOCH;
     private boolean charging;
+    private @Nullable String usableLevelKey;
     /** Setpoints for a climate start; seeded once from the car's saved settings. */
     private double climateTemperature = 21;
     private int climateDuration = 20;
@@ -705,8 +707,8 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         } catch (DateTimeParseException e) {
             electricReportedAt = null;
         }
-        // plug-in hybrids: the usable part of the battery (pytoyoda 5.2.9) and fuel + EV range together
-        updateState(CHANNEL_BATTERY_USABLE_LEVEL, quantity(p.get("phevUsableBatteryLevel"), Units.PERCENT));
+        // plug-in hybrids: the usable part of the battery, and fuel + EV range together
+        updateState(CHANNEL_BATTERY_USABLE_LEVEL, usableBatteryLevel(p));
         updateState(CHANNEL_BATTERY_TOTAL_RANGE, totalRange(p));
         // The payload carries more than this in some states - charging schedules and the
         // car's own next charging event among them - and none of it has been seen from the
@@ -776,6 +778,35 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
      * trickle really can take that long, and there is nothing else to tell the two apart.
      * Same rule pytoyoda settled on in 5.2.5.
      */
+    /**
+     * The usable part of a plug-in hybrid's battery. Which key carries it is not known: 1.8.0 read
+     * "phevUsableBatteryLevel", a name that appears neither in pytoyoda 5.2.9 nor in the payload of
+     * the 2025 RAV4 PHEV on the forum, so the channel stayed UNDEF on exactly the cars it was
+     * written for (2026-09-29). Rather than guess another name, any numeric field whose name
+     * contains "usable" is taken, and the one that matched is logged once so the real name can be
+     * written down here. UNDEF when the car reports no such field, which is every car seen so far.
+     */
+    private State usableBatteryLevel(@Nullable JsonObject p) {
+        if (p == null) {
+            return UnDefType.UNDEF;
+        }
+        for (Map.Entry<String, JsonElement> e : p.entrySet()) {
+            if (!e.getKey().toLowerCase(Locale.ROOT).contains("usable")) {
+                continue;
+            }
+            State q = quantity(e.getValue(), Units.PERCENT);
+            if (!(q instanceof UnDefType)) {
+                if (!e.getKey().equals(usableLevelKey)) {
+                    usableLevelKey = e.getKey();
+                    logger.info("{} reports its usable battery level as \"{}\"; please pass that name on", shortVin(),
+                            e.getKey());
+                }
+                return q;
+            }
+        }
+        return UnDefType.UNDEF;
+    }
+
     private State remainingChargeTime(@Nullable JsonObject p) {
         Double v = number(p == null ? null : p.get("remainingChargeTime"));
         if (v == null) {

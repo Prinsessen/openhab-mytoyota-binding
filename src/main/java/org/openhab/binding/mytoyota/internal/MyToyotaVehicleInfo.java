@@ -87,11 +87,30 @@ public final class MyToyotaVehicleInfo {
         return String.join(", ", flags);
     }
 
-    /** Toyota's fuelType code: B full hybrid, E electric, I plug-in hybrid; anything else burns fuel only. */
+    /** True when either capability container carries this flag set to true. */
+    public static boolean capable(JsonObject v, String key) {
+        return flag(object(v, "extendedCapabilities"), key) || flag(object(v, "remoteServiceCapabilities"), key);
+    }
+
+    /**
+     * Whether the car has a tank the cloud reports on. Read from the capabilities rather than the
+     * fuel type, because Toyota's registry is wrong about some cars (see vehicleType).
+     */
+    public static boolean burnsFuel(JsonObject v) {
+        return capable(v, "fuelLevelAvailable") || capable(v, "fuelRangeAvailable") || capable(v, "hybridPulse");
+    }
+
+    /**
+     * Toyota's fuelType code: B full hybrid, E electric, I plug-in hybrid; anything else burns fuel
+     * only. The registry gets this wrong for some plug-in hybrids - a 2025 RAV4 PHEV came back as
+     * fuelType E on the forum, 2026-09-29 - so a car that the same payload says has a fuel level is
+     * reported as a plug-in hybrid whatever the code says. pytoyoda 5.2.9 trusts the code alone and
+     * calls that car electric.
+     */
     public static String vehicleType(JsonObject v) {
         String fuel = text(v, "fuelType");
         if (flag(v, "evVehicle") || "E".equals(fuel)) {
-            return "electric";
+            return burnsFuel(v) ? "plug-in hybrid" : "electric";
         }
         switch (fuel) {
             case "I":

@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.9.4 — 2026-09-29
+
+Two things a plug-in hybrid owner found on the forum.
+
+**A plug-in hybrid was called electric.** Toyota's own registry returns
+`fuelType: E` for some plug-in hybrids - a 2025 RAV4 PHEV among them - and both
+this binding and pytoyoda 5.2.9 took that at face value, so the thing's
+`vehicleType` property read "electric" on a car with a petrol tank. The same
+payload knows better: the car advertises `fuelLevelAvailable`,
+`fuelRangeAvailable` and `hybridPulse`. A car that reports a fuel level is not
+a battery car, so the capabilities now win over the code. The property and the
+log line are the only places this shows; nothing else keys off it.
+
+**The usable battery level was read from a field that does not exist.** 1.9.0
+and 1.8.x read `phevUsableBatteryLevel`, a name that appears neither in
+pytoyoda nor in the payload of the car it was written for, so `battery#usableLevel`
+stayed UNDEF on exactly the plug-in hybrids it was meant to serve. Rather than
+guess another name, the binding now takes any numeric field in the electric
+payload whose name contains "usable", and logs which one matched at INFO so the
+real name can be written down. Still UNDEF on every car seen so far, but
+honestly so, and the channel's description says as much.
+
+Not a bug, for the record: `trips#latestFuelEconomy` reading 0.0 l/100km on a
+plug-in hybrid means the car reported zero fuel for that trip, which is what a
+trip driven on the battery uses. A missing figure gives UNDEF, never 0.0.
+
 ## 1.9.3 — 2026-09-29
 
 The thing heals its own channel list. When the binding's JAR is replaced, a

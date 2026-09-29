@@ -103,7 +103,7 @@
 			<channel id="remainingChargeTime" typeId="remaining-charge-time"/>
 			<channel id="usableLevel" typeId="battery-level">
 				<label>Usable Battery Level</label>
-				<description>Plug-in hybrids: the part of the battery usable for EV driving, %. UNDEF on other cars.</description>
+				<description>Plug-in hybrids: the part of the battery usable for EV driving, %. Only some cars report it; UNDEF on the rest, and on every car seen so far. If yours fills it in, openhab.log names the field it came from - please pass that on.</description>
 			</channel>
 			<channel id="totalRange" typeId="range">
 				<label>Total Range</label>
