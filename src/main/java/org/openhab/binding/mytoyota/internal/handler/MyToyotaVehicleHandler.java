@@ -821,6 +821,12 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
 
     private void updateTelemetry(JsonObject resp) {
         JsonObject p = payload(resp);
+        // Logged for the same reason as the electric payload: when an owner reports that a channel
+        // carries the wrong figure, the only way to tell a binding fault from what the cloud
+        // actually sent is to see the field. A 2025 RAV4 PHEV owner reported fuelLevel reading as
+        // the battery percentage (2026-09-30) and there is no path in this binding from a battery
+        // field to that channel, so the answer has to be in here.
+        logger.debug("Telemetry payload: {}", p);
         updateState(CHANNEL_TELEMETRY_ODOMETER, distance(p.get("odometer")));
         updateState(CHANNEL_TELEMETRY_DTE, distance(p.get("distanceToEmpty")));
         updateState(CHANNEL_TELEMETRY_FUEL, quantity(p.get("fuelLevel"), Units.PERCENT));   // null on a battery EV
