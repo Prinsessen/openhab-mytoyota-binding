@@ -967,8 +967,13 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                 logger.debug("Climate startedAt not an instant: {}", started);
             }
         }
-        updateState(CHANNEL_CLIMATE_STARTED, startedAt == null ? UnDefType.UNDEF
-                : new DateTimeType(ZonedDateTime.ofInstant(startedAt, ZoneId.systemDefault())));
+        // Stopped, the payload is {"status":"stopped"} and nothing else. The details of the last run
+        // are worth more than UNDEF on a page looked at after the preheat (owner, 2026-10-12): the
+        // start, the cabin and target temperature keep their last values, and the remaining time
+        // goes to 0 min. Only a payload that carries the field replaces it.
+        if (startedAt != null) {
+            updateState(CHANNEL_CLIMATE_STARTED, new DateTimeType(ZonedDateTime.ofInstant(startedAt, ZoneId.systemDefault())));
+        }
 
         Double duration = number(p == null ? null : p.get("duration"));
         if (on && startedAt != null && duration != null && duration > 0) {
@@ -976,11 +981,17 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             long left = Math.max(0, Math.round(duration) - ranMin);
             updateState(CHANNEL_CLIMATE_REMAINING, new QuantityType<>(left, Units.MINUTE));
         } else {
-            updateState(CHANNEL_CLIMATE_REMAINING, UnDefType.UNDEF);
+            updateState(CHANNEL_CLIMATE_REMAINING, new QuantityType<>(0, Units.MINUTE));
         }
 
-        updateState(CHANNEL_CLIMATE_CABIN_TEMP, temperatureOf(object(p, "currentTemperature")));
-        updateState(CHANNEL_CLIMATE_TARGET_TEMP, temperatureOf(object(p, "targetTemperature")));
+        State cabin = temperatureOf(object(p, "currentTemperature"));
+        if (cabin != UnDefType.UNDEF) {
+            updateState(CHANNEL_CLIMATE_CABIN_TEMP, cabin);
+        }
+        State target = temperatureOf(object(p, "targetTemperature"));
+        if (target != UnDefType.UNDEF) {
+            updateState(CHANNEL_CLIMATE_TARGET_TEMP, target);
+        }
     }
 
     /** A {value, unit} block as a temperature; Fahrenheit is honoured if the car ever sends it. */

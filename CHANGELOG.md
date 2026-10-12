@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.6 — 2026-10-12
+
+- Climate status after the run: the car answers `{"status":"stopped"}` and nothing else once the
+  climate is off, and the started time, cabin and target temperature went UNDEF with it. They now
+  keep the last run's values, and `climate#remaining` reads 0 min instead of UNDEF - a page looked
+  at after the morning preheat shows what happened. Only a payload that carries a field replaces it.
+
 ## 1.9.5 — 2026-09-29
 
 **Fixes a regression in 1.9.4, which was live for about an hour.** 1.9.4 read

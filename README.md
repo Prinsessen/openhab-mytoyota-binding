@@ -230,8 +230,8 @@ draws either the latest trip or the picked one: `trip-map.html?prefix=Car_Trip_S
 |---|---|---|
 | `climate#status` | String | `stopped`, `starting`, `running` |
 | `climate#startedAt` | DateTime | when the running session began |
-| `climate#remaining` | Number:Time | minutes left, `startedAt + duration - now` |
-| `climate#cabinTemperature` | Number:Temperature | measured cabin temperature |
+| `climate#remaining` | Number:Time | minutes left, `startedAt + duration - now`; 0 min once stopped |
+| `climate#cabinTemperature` | Number:Temperature | measured cabin temperature; keeps the last run's value after the climate stops (the car sends it only while running) |
 | `climate#targetTemperature` | Number:Temperature | what the session is aiming for |
 
 With the climate off the car answers with nothing but `{"status":"stopped"}`, so the four
