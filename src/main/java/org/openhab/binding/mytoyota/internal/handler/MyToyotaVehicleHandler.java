@@ -310,6 +310,17 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                     updateState(CHANNEL_CONTROL_CHARGE_NOW, OnOffType.OFF);
                 }
             }
+            case CHANNEL_CONTROL_CHARGE_RESERVATION -> {
+                if (command instanceof StringType) {
+                    JsonObject body = chargeReservation(command.toString());
+                    if (body == null) {
+                        updateState(CHANNEL_CONTROL_LAST_RESULT, new StringType("charge-reservation: \""
+                                + command + "\" is not DAY HH:MM or DAY HH:MM-HH:MM"));
+                    } else {
+                        sendRemote(MyToyotaApiClient.ENDPOINT_ELECTRIC_COMMAND, body, "charge-reservation");
+                    }
+                }
+            }
             case CHANNEL_CONTROL_TRUNK_LOCK -> remoteCommand(command == OnOffType.ON ? "trunk-lock" : "trunk-unlock", id, command);
             case CHANNEL_CONTROL_ENGINE -> remoteCommand(command == OnOffType.ON ? "engine-start" : "engine-stop", id, command);
             case CHANNEL_CONTROL_HEADLIGHTS -> remoteCommand(command == OnOffType.ON ? "headlight-on" : "headlight-off", id, command);
@@ -718,58 +729,119 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         // car here yet, because the one capture was taken while it stood idle. Logged whole
         // at debug level so a channel can be built on an observed shape rather than a guess.
         logger.debug("Electric status payload: {}", p);
-        updateState(CHANNEL_BATTERY_SCHEDULE, chargingSchedule(p));
-        JsonObject next = object(p, "nextChargingEvent");
-        updateState(CHANNEL_BATTERY_NEXT_EVENT, next == null ? UnDefType.UNDEF
-                : new StringType(next.toString()));
+        updateState(CHANNEL_BATTERY_SCHEDULE, chargeSchedules(p.get("chargingSchedules")));
+        updateState(CHANNEL_BATTERY_NEXT_EVENT, nextChargingEvent(object(p, "nextChargingEvent")));
+    }
+
+    private static final String[] DAY_KEYS = { "mon", "tue", "wed", "thu", "fri", "sat", "sun" };
+    private static final String[] DAY_NAMES = { "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY",
+            "SUNDAY" };
+
+    /** "HH:MM" from {"hour":3,"minute":0}, or null. */
+    private static @Nullable String hhmm(@Nullable JsonObject t) {
+        Double h = number(t == null ? null : t.get("hour"));
+        Double m = number(t == null ? null : t.get("minute"));
+        return h == null || m == null ? null
+                : String.format(java.util.Locale.ROOT, "%02d:%02d", h.intValue(), m.intValue());
     }
 
     /**
-     * The car's own charging schedule, as one readable line.
-     *
-     * Worth having because a schedule left on in the car will refuse current from a charger
-     * that is offering it, and nothing on the charger's side looks wrong while it happens.
-     * Rendered as text rather than a channel per weekday: the point is to answer "is there a
-     * schedule, and when", which is a question you ask, not one you automate on.
-     *
-     * Not yet seen from the car here - the one capture was taken while it stood idle and
-     * carried none of these fields - so this is written to the shape pytoyoda documents and
-     * returns UNDEF when the fields are absent.
+     * The car's charging schedules (electric status "chargingSchedules", after pytoyoda's
+     * ChargingSchedule: id, enabled, type, startTime {hour, minute}, endTime, days {mon..sun: 0/1}),
+     * one per line. UNDEF when the car does not send the field, "none" when it sends an empty list.
+     * Until 1.9.9 the days and times were read from the schedule itself rather than from "days" and
+     * "startTime", which no car sends; no car here sends schedules at all (a bZ4X, October 2026), so
+     * this is still written to the documented shape and not to an observed one.
      */
-    private State chargingSchedule(@Nullable JsonObject p) {
-        JsonArray list = p == null || !p.has("chargingSchedules") || !p.get("chargingSchedules").isJsonArray()
-                ? null
-                : p.getAsJsonArray("chargingSchedules");
-        if (list == null || list.size() == 0) {
+    private static State chargeSchedules(@Nullable JsonElement e) {
+        if (e == null || !e.isJsonArray()) {
             return UnDefType.UNDEF;
         }
-        List<String> parts = new ArrayList<>();
-        String[] days = { "mon", "tue", "wed", "thu", "fri", "sat", "sun" };
-        for (JsonElement el : list) {
+        StringBuilder sb = new StringBuilder();
+        for (JsonElement el : e.getAsJsonArray()) {
             if (!el.isJsonObject()) {
                 continue;
             }
-            JsonObject o = el.getAsJsonObject();
-            Boolean on = o.has("enabled") && o.get("enabled").isJsonPrimitive()
-                    ? o.get("enabled").getAsBoolean()
-                    : null;
-            if (Boolean.FALSE.equals(on)) {
-                continue;
-            }
-            StringBuilder d = new StringBuilder();
-            for (String day : days) {
-                if (o.has(day) && o.get(day).isJsonPrimitive() && o.get(day).getAsBoolean()) {
-                    d.append(d.length() == 0 ? "" : ",").append(day);
+            JsonObject sc = el.getAsJsonObject();
+            JsonElement en = sc.get("enabled");
+            boolean on = en != null && en.isJsonPrimitive() && en.getAsBoolean();
+            StringBuilder days = new StringBuilder();
+            JsonObject d = object(sc, "days");
+            for (int i = 0; i < DAY_KEYS.length; i++) {
+                Double v = number(d == null ? null : d.get(DAY_KEYS[i]));
+                if (v != null && v.intValue() != 0) {
+                    days.append(days.length() == 0 ? "" : " ")
+                            .append(DAY_NAMES[i].charAt(0)).append(DAY_NAMES[i].substring(1, 3).toLowerCase());
                 }
             }
-            Double hh = number(o.get("hour"));
-            Double mm = number(o.get("minute"));
-            String at = hh == null ? "" : String.format("%02d:%02d", hh.intValue(), mm == null ? 0 : mm.intValue());
-            String end = string(o, "endTime");
-            parts.add((d.length() == 0 ? "daily" : d.toString()) + (at.isEmpty() ? "" : " " + at)
-                    + (end == null ? "" : "-" + end));
+            String start = hhmm(object(sc, "startTime"));
+            String end = hhmm(object(sc, "endTime"));
+            if (sb.length() > 0) {
+                sb.append('\n');
+            }
+            sb.append(on ? "on" : "off").append(" · ").append(days.length() == 0 ? "no days" : days)
+                    .append(" · ").append(start == null ? "?" : start).append(end == null ? "" : "-" + end);
         }
-        return parts.isEmpty() ? new StringType("none enabled") : new StringType(String.join("; ", parts));
+        return new StringType(sb.length() == 0 ? "none" : sb.toString());
+    }
+
+    /** "SUNDAY start 03:00" / "SUNDAY end 07:00" from {"weekDay":..,"startTime":{..},"endTime":{..}}. */
+    private static State nextChargingEvent(@Nullable JsonObject ev) {
+        String day = string(ev, "weekDay");
+        if (ev == null || day == null) {
+            return UnDefType.UNDEF;
+        }
+        String start = hhmm(object(ev, "startTime"));
+        String end = hhmm(object(ev, "endTime"));
+        if (start == null && end == null) {
+            return UnDefType.UNDEF;
+        }
+        return new StringType(day + (start != null ? " start " + start : "") + (end != null ? " end " + end : ""));
+    }
+
+    /**
+     * {"command":"RESERVE_CHARGE","reservationCharge":{...}} from "SUNDAY 03:00" (chargeType startOnly) or
+     * "SUNDAY 03:00-07:00" (startEnd), after pytoyoda's NextChargeSettings (4.2.0). Days may be written in
+     * full or as three letters, in any case. Null when the text is not understood.
+     */
+    static @Nullable JsonObject chargeReservation(String text) {
+        java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("\\s*([A-Za-z]+)\\s+(\\d{1,2}):(\\d{2})(?:\\s*-\\s*(\\d{1,2}):(\\d{2}))?\\s*").matcher(text);
+        if (!m.matches()) {
+            return null;
+        }
+        String d = m.group(1).toUpperCase(java.util.Locale.ROOT);
+        String day = null;
+        for (String n : DAY_NAMES) {
+            if (n.equals(d) || (d.length() == 3 && n.startsWith(d))) {
+                day = n;
+            }
+        }
+        int sh = Integer.parseInt(m.group(2)), sm = Integer.parseInt(m.group(3));
+        if (day == null || sh > 23 || sm > 59) {
+            return null;
+        }
+        JsonObject res = new JsonObject();
+        res.addProperty("chargeType", m.group(4) == null ? "startOnly" : "startEnd");
+        res.addProperty("day", day);
+        JsonObject st = new JsonObject();
+        st.addProperty("hour", sh);
+        st.addProperty("minute", sm);
+        res.add("startTime", st);
+        if (m.group(4) != null) {
+            int eh = Integer.parseInt(m.group(4)), em = Integer.parseInt(m.group(5));
+            if (eh > 23 || em > 59) {
+                return null;
+            }
+            JsonObject et = new JsonObject();
+            et.addProperty("hour", eh);
+            et.addProperty("minute", em);
+            res.add("endTime", et);
+        }
+        JsonObject body = new JsonObject();
+        body.addProperty("command", "RESERVE_CHARGE");
+        body.add("reservationCharge", res);
+        return body;
     }
 
     /**

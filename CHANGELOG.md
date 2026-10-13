@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.9.9 — unreleased
+
+- New command channel `control#chargeReservation` (advanced, **untested on a car**): sets the car's
+  next charge, `SUNDAY 03:00` or `SUNDAY 03:00-07:00`, sent as `RESERVE_CHARGE` the way pytoyoda
+  (4.2.0) does it. Not to be used next to a wallbox that decides when to charge: a reservation in
+  the car can make it refuse the current. Reports welcome.
+- `battery#chargingSchedule` read the days and times from the wrong level of each schedule and could
+  not have shown one correctly; it now follows pytoyoda's shape (`days {mon..sun}`, `startTime`,
+  `endTime`) and lists every schedule with on/off. `battery#nextChargingEvent` shows `SUNDAY start
+  03:00` instead of the raw JSON. Neither has been seen from a car yet: a bZ4X sends neither field,
+  nor `canSetNextChargingEvent`.
+
 ## 1.9.8 — 2026-10-13
 
 - New channels `trips#monthScoreAcceleration`, `monthScoreBraking` and `monthScoreConstantSpeed`:

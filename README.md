@@ -128,6 +128,8 @@ their state is stored in the unit you expect.
 | `battery#chargingStatus` | String | `none`, `charging`, `chargeComplete`, … as the car says it |
 | `battery#charging` | Switch | ON while the status contains "charging" |
 | `battery#remainingChargeTime` | Number:Time | minutes to full while charging, else UNDEF |
+| `battery#chargingSchedule` | String | the schedules the car keeps for itself, one per line: `on · Mon Tue Wed Thu Fri · 22:00-06:00`; `none` for an empty list, UNDEF when the car does not send the field. A schedule left on refuses current from a charger that is offering it. A bZ4X sends no schedules at all |
+| `battery#nextChargingEvent` | String | the car's next planned charge, e.g. `SUNDAY start 03:00`; UNDEF when there is none or the car does not send it (a bZ4X does not) |
 | `battery#usableLevel` | Number:Dimensionless | plug-in hybrids: the part of the battery usable for EV driving, %; UNDEF otherwise |
 | `battery#totalRange` | Number:Length | plug-in hybrids: fuel range plus EV range with A/C, as the app adds them; UNDEF otherwise |
 | `battery#lastUpdate` | DateTime | when the car reported these values |
@@ -273,6 +275,7 @@ Always present:
 | `control#climateTemperature` | Number:Temperature | target for the next start; seeded from the car's saved setting |
 | `control#climateDuration` | Number:Time | minutes the climate runs; seeded from the car |
 | `control#chargeNow` | Switch | ON starts charging now while plugged in, overriding the car's own schedule |
+| `control#chargeReservation` | String | **untested on a car** (advanced). Sets the next charge: `SUNDAY 03:00` starts then, `SUNDAY 03:00-07:00` charges in that window; days in full or three letters. Sent as `RESERVE_CHARGE` after pytoyoda's model. Read back on `battery#nextChargingEvent` where the car reports it. **Do not use it alongside a wallbox that decides when to charge** - a reservation in the car can make it refuse the current |
 | `control#lastCommandResult` | String | last command and the cloud's return code, e.g. `door-lock: 000000 (Success)` |
 | `control#lastWake`, `lastPoll` | DateTime | bookkeeping |
 
@@ -406,7 +409,7 @@ different colours. Copy it to openHAB's `html/` folder and embed it with
 | `control#lock` | verified, including the car refusing it with the key fob inside, reported on `notifications#latest` |
 | trips, service history | code from pytoyoda's model; the test car had no trips yet when released |
 | `control#trunkLock` (unlock) | verified |
-| unlock, hazard, horn, find, climate start/stop and options, charge now, buzzer | same request shape as the app; not yet exercised on a car |
+| unlock, hazard, horn, find, climate start/stop and options, charge now, buzzer, charge reservation | same request shape as the app (the reservation: as pytoyoda sends it); not yet exercised on a car |
 | Lexus, Subaru | same service, different realm; untested |
 
 | | Toyota RAV4 plug-in hybrid 2025 (forum report, 2026-09-23) |

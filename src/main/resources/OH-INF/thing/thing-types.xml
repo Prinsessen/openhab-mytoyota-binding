@@ -347,6 +347,7 @@
 				<label>Charge Now</label>
 				<description>Start charging immediately, overriding a charging schedule, while plugged in.</description>
 			</channel>
+			<channel id="chargeReservation" typeId="charge-reservation"/>
 			<channel id="lastCommandResult" typeId="command-result"/>
 			<channel id="lastWake" typeId="timestamp">
 				<label>Last Wake Request</label>
@@ -451,16 +452,18 @@
 	<channel-type id="charging-schedule">
 		<item-type>String</item-type>
 		<label>Charging Schedule</label>
-		<description>The schedule the car keeps for itself, as one line. A schedule left on will refuse current from a
-			charger that is offering it, and nothing on the charger's side looks wrong while it happens. UNDEF when the
-			car sends no schedule at all.</description>
+		<description>The schedules the car keeps for itself, one per line: on/off, the days and the times, e.g. "on · Mon
+			Tue Wed Thu Fri · 22:00-06:00". A schedule left on will refuse current from a charger that is offering it,
+			and nothing on the charger's side looks wrong while it happens. "none" for an empty list, UNDEF when the
+			car does not send the field (a bZ4X does not).</description>
 		<state readOnly="true"/>
 	</channel-type>
 
 	<channel-type id="next-charging-event">
 		<item-type>String</item-type>
 		<label>Next Charging Event</label>
-		<description>The car's own next planned charge, as it sends it. UNDEF when there is none.</description>
+		<description>The car's own next planned charge: the day and the start or end time, e.g. "SUNDAY start 03:00".
+			UNDEF when there is none or the car does not send it.</description>
 		<state readOnly="true"/>
 	</channel-type>
 
@@ -761,6 +764,13 @@
 		<item-type>DateTime</item-type>
 		<label>Timestamp</label>
 		<state readOnly="true"/>
+	</channel-type>
+
+
+	<channel-type id="charge-reservation" advanced="true">
+		<item-type>String</item-type>
+		<label>Reserve Next Charge</label>
+		<description>UNTESTED on a car. Sets the car's next charge: "SUNDAY 03:00" starts then, "SUNDAY 03:00-07:00" charges in that window. A schedule in the car can make it refuse to charge when a wallbox switches on outside it.</description>
 	</channel-type>
 
 </thing:thing-descriptions>

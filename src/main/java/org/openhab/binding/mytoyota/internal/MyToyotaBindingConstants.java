@@ -162,6 +162,7 @@ public class MyToyotaBindingConstants {
     public static final String CHANNEL_CONTROL_CLIMATE_TEMPERATURE = "control#climateTemperature";
     public static final String CHANNEL_CONTROL_CLIMATE_DURATION = "control#climateDuration";
     public static final String CHANNEL_CONTROL_CHARGE_NOW = "control#chargeNow";
+    public static final String CHANNEL_CONTROL_CHARGE_RESERVATION = "control#chargeReservation";
     public static final String CHANNEL_CONTROL_LAST_RESULT = "control#lastCommandResult";
 
     // optional command channels, created per vehicle from its extendedCapabilities (see
