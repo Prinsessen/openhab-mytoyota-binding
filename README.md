@@ -47,6 +47,7 @@ older JAR, remove it first.
 
 | release | file | sha256 |
 |---|---|---|
+| 1.9.9 | `org.openhab.binding.mytoyota-1.9.9.jar` | `eb04067adee2b3ede3fc2515f4b3c30e70506a256350f6248453b2fe500b930b` |
 | 1.9.8 | `org.openhab.binding.mytoyota-1.9.8.jar` | `022480a981a8da7e4ad607c50700ba03e941d3e340d1ff9e817840f069612c1d` |
 | 1.9.7 | `org.openhab.binding.mytoyota-1.9.7.jar` | `2b7b30f6ce607b4e78f3d04ab0d4d9a5a661d65877607997d6896f785347093a` |
 | 1.9.6 | `org.openhab.binding.mytoyota-1.9.6.jar` | `2f2e44f48b72e66fefe6fbeadc8c1133854f55f84360a44fe563cbcb99c8a2ed` |

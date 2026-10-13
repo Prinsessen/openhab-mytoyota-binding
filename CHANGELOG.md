@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.9.9 — unreleased
+## 1.9.9 — 2026-10-13
 
 - New command channel `control#chargeReservation` (advanced, **untested on a car**): sets the car's
   next charge, `SUNDAY 03:00` or `SUNDAY 03:00-07:00`, sent as `RESERVE_CHARGE` the way pytoyoda

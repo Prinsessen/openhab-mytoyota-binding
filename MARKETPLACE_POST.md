@@ -4,7 +4,7 @@
 | type | binding |
 | author | Nanna Agesen |
 | version range | \[5.0.0;6.0.0) |
-| download | [org.openhab.binding.mytoyota-1.9.8.jar](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/download/v1.9.8/org.openhab.binding.mytoyota-1.9.8.jar) |
+| download | [org.openhab.binding.mytoyota-1.9.9.jar](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/download/v1.9.9/org.openhab.binding.mytoyota-1.9.9.jar) |
 
 # MyToyota Binding — Toyota, Lexus and Subaru (Europe)
 
@@ -167,8 +167,8 @@ Turn location sharing on in the car's multimedia settings, then `control#refresh
   seat and steering heaters appeared; engine, headlights and windows did not), the wake, and `lock` — including
   the car refusing it with the key fob inside, reported on `notifications#latest`.
 - Trips and service history follow pytoyoda's model; the test car had no trips in the cloud when this was released.
-- Unlock, hazard, horn, find, climate start/stop and options, charge now, trunk and buzzer use the same request
-  shape as the app and are not yet exercised on a car.
+- Unlock, hazard, horn, find, climate start/stop and options, charge now, charge reservation, trunk and buzzer use
+  the same request shape as the app and are not yet exercised on a car.
 
 **If you own a different Toyota, Lexus or Subaru, please post what works** — model, year and the `capabilities`
 thing property are all that is needed to extend the binding.
@@ -177,12 +177,12 @@ thing property are all that is needed to extend the binding.
 
 ## Resources
 
-* **Download JAR:** [org.openhab.binding.mytoyota-1.9.8.jar](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/download/v1.9.8/org.openhab.binding.mytoyota-1.9.8.jar)
+* **Download JAR:** [org.openhab.binding.mytoyota-1.9.9.jar](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/download/v1.9.9/org.openhab.binding.mytoyota-1.9.9.jar)
 * **Source Code:** [github.com/Prinsessen/openhab-mytoyota-binding](https://github.com/Prinsessen/openhab-mytoyota-binding)
 * **Full Documentation:** [README.md](https://github.com/Prinsessen/openhab-mytoyota-binding/blob/main/README.md)
 * **Examples:** [examples/](https://github.com/Prinsessen/openhab-mytoyota-binding/tree/main/examples)
 * **Changelog:** [CHANGELOG.md](https://github.com/Prinsessen/openhab-mytoyota-binding/blob/main/CHANGELOG.md)
-* **Release:** [v1.9.8 — MyToyota Binding 1.9.8](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/tag/v1.9.8)
+* **Release:** [v1.9.9 — MyToyota Binding 1.9.9](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/tag/v1.9.9)
 * **License:** EPL-2.0
 
 ---
