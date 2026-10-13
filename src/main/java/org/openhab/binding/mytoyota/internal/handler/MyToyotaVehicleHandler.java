@@ -143,6 +143,9 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
     private final MyToyotaStateDescriptionProvider stateOptions;
     /** The recent trips as the cloud listed them, newest first, id -> trip (summary, scores, hdc; no route). */
     private final java.util.LinkedHashMap<String, JsonObject> recentTrips = new java.util.LinkedHashMap<>();
+    /** The newest trip whose route has been fetched, and that route, so an hourly poll costs one call, not two */
+    private @Nullable String latestRouteTripId;
+    private State latestRoute = UnDefType.UNDEF;
     private static final int RECENT_TRIPS = 20;
 
     public MyToyotaVehicleHandler(Thing thing, MyToyotaStateDescriptionProvider stateOptions) {
@@ -1194,7 +1197,7 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             updateState(CHANNEL_TRIPS_LATEST_END_POS, point(sum, "endLat", "endLon"));
             String tripId = string(trip, "id");
             updateState(CHANNEL_TRIPS_LATEST_ID, tripId == null ? UnDefType.UNDEF : new StringType(tripId));
-            updateState(CHANNEL_TRIPS_LATEST_ROUTE, route(trip.get("route")));
+            updateState(CHANNEL_TRIPS_LATEST_ROUTE, latestRoute(client, trip, tripId));
         }
         updateRecentTrips(client, from, to);
         // month and day summaries
@@ -1248,6 +1251,47 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         updateState(CHANNEL_TRIPS_TODAY_FUEL, todayFuel);
         updateState(CHANNEL_TRIPS_MONTH_SCORE, monthScore);
         updateState(CHANNEL_TRIPS_TIMESTAMP, new DateTimeType(now));
+    }
+
+    /**
+     * The newest trip's route. Fetched from the trip's own endpoint once per new trip and kept; a route
+     * that comes back empty is not kept, so a trip the cloud has not finished processing is asked for
+     * again on the next poll. Should the list ever carry routes again, that one is used and no call made.
+     */
+    private State latestRoute(MyToyotaApiClient client, JsonObject trip, @Nullable String tripId) {
+        State inList = route(trip.get("route"));
+        if (inList != UnDefType.UNDEF || tripId == null) {
+            return inList;
+        }
+        if (tripId.equals(latestRouteTripId)) {
+            return latestRoute;
+        }
+        JsonObject detail = tripDetail(client, tripId);
+        State r = detail == null ? UnDefType.UNDEF : route(detail.get("route"));
+        if (r != UnDefType.UNDEF) {
+            latestRouteTripId = tripId;
+            latestRoute = r;
+        }
+        return r;
+    }
+
+    /**
+     * One trip from /v1/trips/{id}: the same fields as in the list plus "route". Since about 2026-09-30
+     * this is the only place Toyota serves a trip's GPS points (pytoyoda #322, fixed there in #328 the
+     * same way). The id goes into the path, so anything but a UUID's characters is refused.
+     */
+    private @Nullable JsonObject tripDetail(MyToyotaApiClient client, String tripId) {
+        if (!tripId.matches("[0-9A-Fa-f-]{8,64}")) {
+            logger.debug("Trip id {} of {} is not a UUID, not asked for", tripId, shortVin());
+            return null;
+        }
+        try {
+            JsonObject p = payload(client.get(String.format(MyToyotaApiClient.ENDPOINT_TRIP_DETAIL, tripId), vin));
+            return p.size() == 0 ? null : p;
+        } catch (MyToyotaApiException e) {
+            logger.debug("Route of trip {} for {} failed: {}", tripId, shortVin(), e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -1329,9 +1373,9 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
     }
 
     /**
-     * One trip from the recent list, with its route. Fetched by its own day so the answer holds a few
-     * trips rather than twenty routes; the id picks it out. Published on the trips#selected* channels,
-     * which the map page reads with ?prefix=... .
+     * One trip from the recent list, with its route, from the trip's own endpoint (until 1.9.6 its day
+     * was listed again with route=true, which has returned no routes since about 2026-09-30). Published
+     * on the trips#selected* channels, which the map page reads with ?prefix=... .
      */
     private void selectTrip(String id) {
         MyToyotaAccountHandler account = getAccount();
@@ -1341,33 +1385,14 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             logger.debug("Trip {} is not in the recent list of {}", id, shortVin());
             return;
         }
-        JsonObject sum = object(known, "summary");
-        String startTs = string(sum, "startTs");
-        String endTs = string(sum, "endTs");
-        String from;
-        String to;
-        try {
-            from = Instant.parse(startTs == null ? "" : startTs).atZone(ZoneId.systemDefault()).toLocalDate().toString();
-            to = Instant.parse(endTs == null ? (startTs == null ? "" : startTs) : endTs).atZone(ZoneId.systemDefault())
-                    .toLocalDate().toString();
-        } catch (DateTimeParseException e) {
-            logger.debug("Trip {} of {} has no usable start time", id, shortVin());
-            return;
-        }
-        JsonObject found = known;
-        try {
-            JsonObject resp = client.get(String.format(MyToyotaApiClient.ENDPOINT_TRIPS, from, to, RECENT_TRIPS), vin);
-            JsonElement tripsEl = payload(resp).get("trips");
-            if (tripsEl != null && tripsEl.isJsonArray()) {
-                for (JsonElement el : tripsEl.getAsJsonArray()) {
-                    if (el.isJsonObject() && id.equals(string(el.getAsJsonObject(), "id"))) {
-                        found = el.getAsJsonObject();
-                        break;
-                    }
-                }
+        JsonObject detail = tripDetail(client, id);
+        JsonObject found = detail != null && object(detail, "summary") != null ? detail : known;
+        if (detail != null && found == known) {
+            found = known.deepCopy();
+            JsonElement r = detail.get("route");
+            if (r != null) {
+                found.add("route", r);
             }
-        } catch (MyToyotaApiException e) {
-            logger.debug("Route of trip {} for {} failed: {}", id, shortVin(), e.getMessage());
         }
         JsonObject fs = object(found, "summary");
         JsonObject hdc = object(found, "hdc");

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.9.7 — unreleased
+
+- **Trip routes are back.** Since about 2026-09-30 Toyota's `/v1/trips` list returns every trip
+  without its GPS points, whatever `route=` says; the official app still shows them because it
+  reads each trip from `/v1/trips/{id}`, where the route is still served under `payload.route`
+  ([pytoyoda #322](https://github.com/pytoyoda/pytoyoda/issues/322), fixed there the same way in
+  #328). `trips#latestRoute` now comes from the newest trip's own endpoint - one extra call per
+  new trip, kept until the next trip, and asked again if the cloud has not finished processing it -
+  and `trips#selectedRoute` reads the picked trip from its endpoint instead of listing its day again.
+  The list query now says `route=false`, which is what it gets anyway.
+- Toyota also stopped sending the hybrid Charge/Eco/Power split (`chargeDist`, `ecoDist`,
+  `powerDist` in `hdc`) at the same time; the binding never read them, `evDistance`/`evTime` remain.
+
 ## 1.9.6 — 2026-10-12
 
 - Climate status after the run: the car answers `{"status":"stopped"}` and nothing else once the

@@ -83,10 +83,16 @@ public class MyToyotaApiClient {
     public static final String ENDPOINT_HEALTH = "/v1/vehiclehealth/status";
     public static final String ENDPOINT_CLIMATE_STATUS = "/v1/vehicle/climate-status";
     public static final String ENDPOINT_CLIMATE_SETTINGS = "/v1/vehicle/climate-settings";
-    /** Trips: from/to as yyyy-MM-dd; summary=true adds month and day summaries; newest first */
-    public static final String ENDPOINT_TRIPS = "/v1/trips?from=%s&to=%s&route=true&summary=true&limit=%d&offset=0";
-    /** The same list without routes: twenty routes would be a megabyte for a list nobody reads on a map at once */
+    /**
+     * Trips: from/to as yyyy-MM-dd; summary=true adds month and day summaries; newest first. Since about
+     * 2026-09-30 the list no longer carries any trip's route, whatever route= says (pytoyoda #322): the
+     * route is only served by {@link #ENDPOINT_TRIP_DETAIL}. route=false says so.
+     */
+    public static final String ENDPOINT_TRIPS = "/v1/trips?from=%s&to=%s&route=false&summary=true&limit=%d&offset=0";
+    /** The same list without the summaries, for the recent-trips selection */
     public static final String ENDPOINT_TRIPS_LIST = "/v1/trips?from=%s&to=%s&route=false&summary=false&limit=%d&offset=0";
+    /** One trip by its id, route included under payload.route - the only place the route is now */
+    public static final String ENDPOINT_TRIP_DETAIL = "/v1/trips/%s";
     public static final String ENDPOINT_SERVICE_HISTORY = "/v1/servicehistory/vehicle/summary";
     /** POST, no body: asks the car to report its climate state, like the status wake */
     public static final String ENDPOINT_CLIMATE_REFRESH = "/v1/remote/refresh-climate-status";
