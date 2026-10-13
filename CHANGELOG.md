@@ -1,11 +1,12 @@
 # Changelog
 
-## 1.9.8 — unreleased
+## 1.9.8 — 2026-10-13
 
 - New channels `trips#monthScoreAcceleration`, `monthScoreBraking` and `monthScoreConstantSpeed`:
   the parts behind the month's score. The cloud sends a bZ4X acceleration and braking per trip but
   never constant speed (checked on twenty trips, up to 20.6 km), while the month summary does carry
   it - so this is the only constant-speed score such a car gets.
+  On the test car the month read acceleration 75, braking 78, constant speed 80 under a total of 76.
 - DEBUG log of which score fields each trip and the month carry, so a "why is this UNDEF" can be
   answered from the log. `latestScoreAdvice` has not been sent to the test car since September.
 
