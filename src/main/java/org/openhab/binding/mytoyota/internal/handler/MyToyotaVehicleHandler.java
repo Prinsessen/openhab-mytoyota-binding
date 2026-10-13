@@ -1226,6 +1226,9 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                 // the cloud's own score for the month; pytoyoda (5.2.6, hybrid_score) reads the same
                 // field, and averages the days only for a week, which has no figure of its own
                 monthScore = score(object(m, "scores"), "global");
+                JsonObject msc = object(m, "scores");
+                logger.debug("Month score fields for {}: {}", shortVin(),
+                        msc == null ? "no scores" : String.join(",", new java.util.TreeSet<>(msc.keySet())));
                 JsonElement hist = m.get("histograms");
                 if (hist != null && hist.isJsonArray()) {
                     for (JsonElement h : hist.getAsJsonArray()) {
@@ -1313,6 +1316,7 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         }
         recentTrips.clear();
         StringBuilder text = new StringBuilder();
+        StringBuilder scoreKeys = new StringBuilder();
         List<StateOption> options = new ArrayList<>();
         for (JsonElement el : tripsEl.getAsJsonArray()) {
             if (!el.isJsonObject()) {
@@ -1325,12 +1329,19 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             }
             recentTrips.put(id, trip);
             String line = tripLine(trip);
+            JsonObject sc = object(trip, "scores");
+            scoreKeys.append("\n  ").append(line).append(" -> ")
+                    .append(sc == null ? "no scores" : String.join(",", new java.util.TreeSet<>(sc.keySet())));
             if (text.length() > 0) {
                 text.append('\n');
             }
             text.append(line);
             options.add(new StateOption(id, line));
         }
+        // Which score fields each trip carries. The cloud leaves out a field it could not judge
+        // (constantSpeed on a short town trip) and appears to have stopped sending "advice" in
+        // Europe; this shows which, per trip, without anyone having to capture a raw response.
+        logger.debug("Trip score fields for {}:{}", shortVin(), scoreKeys);
         updateState(CHANNEL_TRIPS_RECENT, text.length() == 0 ? UnDefType.UNDEF : new StringType(text.toString()));
         stateOptions.setStateOptions(new ChannelUID(getThing().getUID(), "trips", "select"), options);
     }
