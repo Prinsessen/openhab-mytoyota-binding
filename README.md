@@ -158,7 +158,7 @@ cloud keeps about 12 months.
 | `trips#latestEvDistance` | Number:Length | driven electrically |
 | `trips#latestEvDuration` | Number:Time | time driven electrically (hybrids: the engine-off share) |
 | `trips#latestScore` | Number | Toyota's driving score, 0–100 |
-| `trips#latestScoreAcceleration`, `latestScoreBraking`, `latestScoreConstantSpeed`, `latestScoreAdvice` | Number | the parts behind the score. On the test car the first two read 82 and 90 with the score at 86, constant speed was absent (UNDEF) and advice read 1 - so advice may be a count rather than a score; the payload does not say |
+| `trips#latestScoreAcceleration`, `latestScoreBraking`, `latestScoreConstantSpeed`, `latestScoreAdvice` | Number | the parts behind the score, as far as the cloud sends them - a part it leaves out reads UNDEF. Which ones come depends on the car: a bZ4X (October 2026) gets acceleration and braking on every trip and never constant speed or advice, not even on a 20 km country-road trip, while a Corolla Cross gets constant speed per trip as well. The month carries constant speed for the bZ4X (below). Advice read 1 on the test car in September and has not been sent since |
 | `trips#latestStartPosition`, `latestEndPosition` | Location | |
 | `trips#latestRoute` | String | the route as `lat,lon,flags;…` (five decimals; flags `e` electric, `h` highway, `o` over the limit). For a map; do not persist |
 | `trips#latestId` | String | the cloud's trip id |
@@ -167,6 +167,7 @@ cloud keeps about 12 months.
 | `trips#monthFuelEconomy` | Number | this month's l/100 km |
 | `trips#monthEvDistance` | Number:Length | this month driven electrically |
 | `trips#monthScore` | Number | the cloud's driving score for the month |
+| `trips#monthScoreAcceleration`, `monthScoreBraking`, `monthScoreConstantSpeed` | Number | the parts behind the month's score. Where a car gets no constant-speed score per trip, the month may still carry one |
 | `trips#count30Days` | Number | trips in the last 30 days |
 | `trips#recent` | String | the last twenty trips, one per line: `28/09 07:00 · 34.0 km · 41 min · 86`, plus fuel and l/100 km on a car that burns fuel |
 | `trips#select` | String | **pick one of them**: the channel's options are the trips themselves, so a sitemap `Selection` (no mappings needed) or a UI dropdown lists them. Send a trip id and the channels below fill a moment later |

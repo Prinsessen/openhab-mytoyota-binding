@@ -1204,7 +1204,8 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         JsonElement sumsEl = p.get("summary");
         State monthDist = UnDefType.UNDEF, monthDur = UnDefType.UNDEF, monthFuel = UnDefType.UNDEF, todayDist = UnDefType.UNDEF;
         State monthEconomy = UnDefType.UNDEF, monthEv = UnDefType.UNDEF, todayFuel = UnDefType.UNDEF;
-        State monthScore = UnDefType.UNDEF;
+        State monthScore = UnDefType.UNDEF, monthAccel = UnDefType.UNDEF, monthBraking = UnDefType.UNDEF;
+        State monthConstant = UnDefType.UNDEF;
         if (sumsEl != null && sumsEl.isJsonArray()) {
             for (JsonElement el : sumsEl.getAsJsonArray()) {
                 if (!el.isJsonObject()) {
@@ -1229,6 +1230,11 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
                 JsonObject msc = object(m, "scores");
                 logger.debug("Month score fields for {}: {}", shortVin(),
                         msc == null ? "no scores" : String.join(",", new java.util.TreeSet<>(msc.keySet())));
+                // the month carries parts a single trip may not: a bZ4X gets constantSpeed for the
+                // month only, never per trip, not even on a 20 km country-road trip (2026-10-13)
+                monthAccel = score(msc, "acceleration");
+                monthBraking = score(msc, "braking");
+                monthConstant = score(msc, "constantSpeed");
                 JsonElement hist = m.get("histograms");
                 if (hist != null && hist.isJsonArray()) {
                     for (JsonElement h : hist.getAsJsonArray()) {
@@ -1253,6 +1259,9 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         updateState(CHANNEL_TRIPS_MONTH_EV_DISTANCE, monthEv);
         updateState(CHANNEL_TRIPS_TODAY_FUEL, todayFuel);
         updateState(CHANNEL_TRIPS_MONTH_SCORE, monthScore);
+        updateState(CHANNEL_TRIPS_MONTH_SCORE_ACCELERATION, monthAccel);
+        updateState(CHANNEL_TRIPS_MONTH_SCORE_BRAKING, monthBraking);
+        updateState(CHANNEL_TRIPS_MONTH_SCORE_CONSTANT_SPEED, monthConstant);
         updateState(CHANNEL_TRIPS_TIMESTAMP, new DateTimeType(now));
     }
 

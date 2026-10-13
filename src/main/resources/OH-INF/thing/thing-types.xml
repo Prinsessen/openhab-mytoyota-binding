@@ -156,6 +156,9 @@
 			<channel id="monthFuelEconomy" typeId="fuel-economy"><label>This Month Consumption</label></channel>
 			<channel id="monthEvDistance" typeId="trip-distance"><label>This Month EV Distance</label></channel>
 			<channel id="monthScore" typeId="trip-score"><label>This Month Score</label></channel>
+			<channel id="monthScoreAcceleration" typeId="trip-score"><label>This Month Acceleration Score</label></channel>
+			<channel id="monthScoreBraking" typeId="trip-score"><label>This Month Braking Score</label></channel>
+			<channel id="monthScoreConstantSpeed" typeId="trip-score"><label>This Month Constant Speed Score</label></channel>
 			<channel id="count30Days" typeId="trip-count"/>
 			<channel id="latestStartPosition" typeId="trip-position"><label>Latest Trip Start Position</label></channel>
 			<channel id="latestEndPosition" typeId="trip-position"><label>Latest Trip End Position</label></channel>
