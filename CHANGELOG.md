@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.9.10 — 2026-10-22
+
+- **Climate start works again.** Since 2026-10-22 the cloud answers `400 CTP-REMOTE-40005 "Invalid
+  seat options provided. Allowed values (off|heater|ventilation)"` to the seat heaters sent as
+  `"on"`, which it had accepted every morning until 2026-10-21 (`000000 Success` at 06:29).
+  The seat switches now go out as `heater`/`off`; `heater` and `ventilation` (and the older
+  `on`/`low`/`medium`/`high`) are read back as ON. The heating options (defrosters, steering
+  wheel, mirrors) still go as `on`/`off` — the cloud did not complain about those. Seen on a
+  bZ4X; a car with ventilated seats could get a `ventilation` channel later. Verified on the
+  test car the same morning: `climate-start: 000000 (Success)` at 08:06:59, stop 27 s later.
+
 ## 1.9.9 — 2026-10-13
 
 - New command channel `control#chargeReservation` (advanced, **untested on a car**): sets the car's

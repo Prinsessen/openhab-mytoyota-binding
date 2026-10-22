@@ -379,11 +379,14 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
             if (heating.size() > 0) {
                 body.add("heatingOptions", heating);
             }
+            // Seats are not on/off to the cloud: since 2026-10-22 it answers 400 CTP-REMOTE-40005
+            // "Allowed values (off|heater|ventilation)" to "on", which it had accepted until the day
+            // before. A switch channel means the heater; ventilation has no channel yet.
             JsonObject seats = new JsonObject();
-            putOption(seats, "driverSeat", CHANNEL_CONTROL_SEAT_DRIVER);
-            putOption(seats, "passengerSeat", CHANNEL_CONTROL_SEAT_PASSENGER);
-            putOption(seats, "rearDriverSeat", CHANNEL_CONTROL_SEAT_REAR_LEFT);
-            putOption(seats, "rearPassengerSeat", CHANNEL_CONTROL_SEAT_REAR_RIGHT);
+            putSeatOption(seats, "driverSeat", CHANNEL_CONTROL_SEAT_DRIVER);
+            putSeatOption(seats, "passengerSeat", CHANNEL_CONTROL_SEAT_PASSENGER);
+            putSeatOption(seats, "rearDriverSeat", CHANNEL_CONTROL_SEAT_REAR_LEFT);
+            putSeatOption(seats, "rearPassengerSeat", CHANNEL_CONTROL_SEAT_REAR_RIGHT);
             if (seats.size() > 0) {
                 body.add("seatOptions", seats);
             }
@@ -1686,6 +1689,14 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         }
     }
 
+    /** Same for a seat, in the cloud's words: "heater" for on, "off" for off (see climateCommand). */
+    private void putSeatOption(JsonObject target, String apiKey, String channelId) {
+        String v = climateOptions.get(channelId);
+        if (v != null) {
+            target.addProperty(apiKey, "on".equalsIgnoreCase(v) ? "heater" : "off");
+        }
+    }
+
     /** ON on a one-shot channel runs the command once; the channel returns to OFF. */
     private void oneShot(String channelId, Command command, String remote) {
         if (command == OnOffType.ON) {
@@ -1790,7 +1801,9 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         if (v == null || getThing().getChannel(channelId) == null) {
             return;
         }
-        boolean on = "on".equalsIgnoreCase(v) || "high".equalsIgnoreCase(v) || "low".equalsIgnoreCase(v);
+        // "heater"/"ventilation" are what the cloud says for a seat since 2026-10-22; "on"/"high"/"low" before
+        boolean on = "on".equalsIgnoreCase(v) || "high".equalsIgnoreCase(v) || "low".equalsIgnoreCase(v)
+                || "medium".equalsIgnoreCase(v) || "heater".equalsIgnoreCase(v) || "ventilation".equalsIgnoreCase(v);
         climateOptions.put(channelId, on ? "on" : "off");
         updateState(channelId, OnOffType.from(on));
     }

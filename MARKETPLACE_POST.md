@@ -4,7 +4,7 @@
 | type | binding |
 | author | Nanna Agesen |
 | version range | \[5.0.0;6.0.0) |
-| download | [org.openhab.binding.mytoyota-1.9.9.jar](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/download/v1.9.9/org.openhab.binding.mytoyota-1.9.9.jar) |
+| download | [org.openhab.binding.mytoyota-1.9.10.jar](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/download/v1.9.10/org.openhab.binding.mytoyota-1.9.10.jar) |
 
 # MyToyota Binding — Toyota, Lexus and Subaru (Europe)
 
@@ -177,12 +177,12 @@ thing property are all that is needed to extend the binding.
 
 ## Resources
 
-* **Download JAR:** [org.openhab.binding.mytoyota-1.9.9.jar](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/download/v1.9.9/org.openhab.binding.mytoyota-1.9.9.jar)
+* **Download JAR:** [org.openhab.binding.mytoyota-1.9.10.jar](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/download/v1.9.10/org.openhab.binding.mytoyota-1.9.10.jar)
 * **Source Code:** [github.com/Prinsessen/openhab-mytoyota-binding](https://github.com/Prinsessen/openhab-mytoyota-binding)
 * **Full Documentation:** [README.md](https://github.com/Prinsessen/openhab-mytoyota-binding/blob/main/README.md)
 * **Examples:** [examples/](https://github.com/Prinsessen/openhab-mytoyota-binding/tree/main/examples)
 * **Changelog:** [CHANGELOG.md](https://github.com/Prinsessen/openhab-mytoyota-binding/blob/main/CHANGELOG.md)
-* **Release:** [v1.9.9 — MyToyota Binding 1.9.9](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/tag/v1.9.9)
+* **Release:** [v1.9.10 — MyToyota Binding 1.9.10](https://github.com/Prinsessen/openhab-mytoyota-binding/releases/tag/v1.9.10)
 * **License:** EPL-2.0
 
 ---
