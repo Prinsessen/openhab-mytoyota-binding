@@ -1782,6 +1782,9 @@ public class MyToyotaVehicleHandler extends BaseThingHandler {
         updateState(CHANNEL_CONTROL_CLIMATE_DURATION, new QuantityType<>(climateDuration, Units.MINUTE));
         JsonObject heating = object(p, "heatingOptions");
         JsonObject seats = object(p, "seatOptions");
+        // the raw words, so the next change of vocabulary (on -> heater/off, 2026-10-22) shows in a DEBUG log
+        logger.debug("Climate settings: temperature {}, duration {}, heatingOptions {}, seatOptions {}", t, d, heating,
+                seats);
         seedOption(heating, "frontDefroster", CHANNEL_CONTROL_DEFROST_FRONT);
         seedOption(heating, "rearDefogger", CHANNEL_CONTROL_DEFROST_REAR);
         seedOption(heating, "steeringHeater", CHANNEL_CONTROL_STEERING_HEATER);

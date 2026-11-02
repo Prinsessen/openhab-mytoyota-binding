@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.9.11 — 2026-11-02
+
+- **No `route` parameter on the trip lists.** pytoyoda 6.0.0 dropped it and the cloud has ignored
+  it since about 2026-09-30 (the route comes only from the single-trip endpoint `/v1/trips/{id}`),
+  so the two list calls no longer send `route=false`. Nothing else in the requests changes.
+- **The cloud's raw climate words at DEBUG.** `seedClimateSettings` logs the temperature, duration,
+  `heatingOptions` and `seatOptions` exactly as the cloud sent them, so the next change of
+  vocabulary (like `on` -> `heater`/`off` on 2026-10-22) can be read in a DEBUG log instead of
+  guessed from a 400.
+- First unit tests: `TripEndpointsTest` (the list URLs, the single-trip URL).
+
 ## 1.9.10 — 2026-10-22
 
 - **Climate start works again.** Since 2026-10-22 the cloud answers `400 CTP-REMOTE-40005 "Invalid

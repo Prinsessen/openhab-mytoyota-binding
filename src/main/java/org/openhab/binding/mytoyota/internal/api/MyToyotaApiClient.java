@@ -86,11 +86,12 @@ public class MyToyotaApiClient {
     /**
      * Trips: from/to as yyyy-MM-dd; summary=true adds month and day summaries; newest first. Since about
      * 2026-09-30 the list no longer carries any trip's route, whatever route= says (pytoyoda #322): the
-     * route is only served by {@link #ENDPOINT_TRIP_DETAIL}. route=false says so.
+     * route is only served by {@link #ENDPOINT_TRIP_DETAIL}. There is no route parameter any more:
+     * pytoyoda 6.0.0 dropped it and the cloud ignores it.
      */
-    public static final String ENDPOINT_TRIPS = "/v1/trips?from=%s&to=%s&route=false&summary=true&limit=%d&offset=0";
+    public static final String ENDPOINT_TRIPS = "/v1/trips?from=%s&to=%s&summary=true&limit=%d&offset=0";
     /** The same list without the summaries, for the recent-trips selection */
-    public static final String ENDPOINT_TRIPS_LIST = "/v1/trips?from=%s&to=%s&route=false&summary=false&limit=%d&offset=0";
+    public static final String ENDPOINT_TRIPS_LIST = "/v1/trips?from=%s&to=%s&summary=false&limit=%d&offset=0";
     /** One trip by its id, route included under payload.route - the only place the route is now */
     public static final String ENDPOINT_TRIP_DETAIL = "/v1/trips/%s";
     public static final String ENDPOINT_SERVICE_HISTORY = "/v1/servicehistory/vehicle/summary";
