@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.9.12 — 2026-11-03
+
+- **The account comes back by itself after a network outage.** A vehicle's failed poll takes the
+  account OFFLINE, and a vehicle stops polling while its account is OFFLINE - so nothing ever polled
+  again, and account and car stayed OFFLINE until the thing was restarted by hand (seen here when a
+  firewall rebooted: OFFLINE from 08:13 and never back). The account now asks the cloud for the
+  vehicle list once per poll interval while it is OFFLINE; when the cloud answers it goes ONLINE and
+  the vehicles poll again. One retry is pending at a time, and dispose cancels it.
+- Unit tests: `AccountRecoveryTest` (4 of its 5 tests fail on 1.9.11; the fifth holds the existing
+  "a successful poll brings the account back at once").
+
 ## 1.9.11 — 2026-11-02
 
 - **No `route` parameter on the trip lists.** pytoyoda 6.0.0 dropped it and the cloud has ignored

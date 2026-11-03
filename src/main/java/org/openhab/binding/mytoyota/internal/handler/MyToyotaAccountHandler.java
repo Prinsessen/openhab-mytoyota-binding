@@ -48,6 +48,9 @@ public class MyToyotaAccountHandler extends BaseBridgeHandler {
     private MyToyotaAccountConfiguration config = new MyToyotaAccountConfiguration();
     private @Nullable MyToyotaApiClient client;
     private @Nullable ScheduledFuture<?> loginJob;
+    private @Nullable ScheduledFuture<?> recoveryJob;
+    private boolean recoveryPending;
+    private volatile boolean disposed;
 
     public MyToyotaAccountHandler(Bridge bridge) {
         super(bridge);
@@ -55,6 +58,7 @@ public class MyToyotaAccountHandler extends BaseBridgeHandler {
 
     @Override
     public void initialize() {
+        disposed = false;
         config = getConfigAs(MyToyotaAccountConfiguration.class);
         if (config.username.isBlank() || config.password.isBlank()) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, "Username and password are required");
@@ -63,7 +67,13 @@ public class MyToyotaAccountHandler extends BaseBridgeHandler {
         String brand = config.brand == null || config.brand.isBlank() ? "T" : config.brand.trim().toUpperCase();
         client = new MyToyotaApiClient(config.username.trim(), config.password, brand);
         updateStatus(ThingStatus.UNKNOWN);
-        loginJob = scheduler.schedule(this::tryLogin, 1, TimeUnit.SECONDS);
+        loginJob = schedule(this::tryLogin, 1, TimeUnit.SECONDS);
+    }
+
+    /** Every delayed job of this handler goes through here (a test runs them by hand). */
+    @Nullable
+    ScheduledFuture<?> schedule(Runnable task, long delay, TimeUnit unit) {
+        return scheduler.schedule(task, delay, unit);
     }
 
     private void tryLogin() {
@@ -78,7 +88,7 @@ public class MyToyotaAccountHandler extends BaseBridgeHandler {
             logger.debug("Login failed: {}", e.getMessage());
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, e.getMessage());
             // try again later; a wrong password stays offline with the message above
-            loginJob = scheduler.schedule(this::tryLogin, 10, TimeUnit.MINUTES);
+            loginJob = schedule(this::tryLogin, 10, TimeUnit.MINUTES);
         }
     }
 
@@ -89,6 +99,8 @@ public class MyToyotaAccountHandler extends BaseBridgeHandler {
             job.cancel(true);
             loginJob = null;
         }
+        disposed = true;
+        cancelRecovery();
         client = null;
     }
 
@@ -135,14 +147,59 @@ public class MyToyotaAccountHandler extends BaseBridgeHandler {
         return null;
     }
 
-    /** Called by a vehicle handler when a call failed, so the bridge status reflects it. */
+    /**
+     * Called by a vehicle handler after each poll, so the bridge status reflects it.
+     *
+     * A vehicle stops polling while its bridge is OFFLINE, so once a failed poll has taken the bridge OFFLINE
+     * no vehicle will ever report success again: the bridge must find its own way back (until 1.9.11 it never
+     * did - a FortiGate reboot on 2026-11-03 left the account and the car OFFLINE until restarted by hand).
+     */
     void reportCommunication(boolean ok, @Nullable String message) {
         if (ok) {
             if (getThing().getStatus() != ThingStatus.ONLINE) {
+                cancelRecovery();
                 updateStatus(ThingStatus.ONLINE);
             }
         } else if (getThing().getStatus() == ThingStatus.ONLINE) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, message);
+            scheduleRecovery();
+        }
+    }
+
+    /** One retry pending at a time, one poll interval away - the cadence the vehicles had. */
+    private synchronized void scheduleRecovery() {
+        if (recoveryPending || disposed) {
+            return;
+        }
+        recoveryPending = true;
+        recoveryJob = schedule(this::recover, Math.max(1, config.pollInterval), TimeUnit.MINUTES);
+    }
+
+    private synchronized void cancelRecovery() {
+        ScheduledFuture<?> job = recoveryJob;
+        if (job != null) {
+            job.cancel(false);
+        }
+        recoveryJob = null;
+        recoveryPending = false;
+    }
+
+    /** Ask the cloud for the vehicle list: ONLINE when it answers (the vehicles then poll again), else retry. */
+    private void recover() {
+        synchronized (this) {
+            recoveryJob = null;
+            recoveryPending = false;
+        }
+        if (getThing().getStatus() == ThingStatus.ONLINE) {
+            return;
+        }
+        try {
+            listVehicles();
+            logger.debug("MyToyota cloud answers again, account back ONLINE");
+            updateStatus(ThingStatus.ONLINE);
+        } catch (MyToyotaApiException | RuntimeException e) {
+            logger.debug("MyToyota cloud still unreachable: {}", e.getMessage());
+            scheduleRecovery();
         }
     }
 }
